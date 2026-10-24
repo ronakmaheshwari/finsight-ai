@@ -1,0 +1,29 @@
+{
+  "name": "@repo/db",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "prisma skills sync || exit 0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
+    "@types/dotenv": "^6.1.1",
+    "@types/pg": "^8.23.1",
+    "pg": "^8.23.1",
+    "prisma": "^7.10.1"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "*",
+    "@types/node": "^26.4.1",
+    "dotenv": "^16.0.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^7.0.2"
+  }
+}

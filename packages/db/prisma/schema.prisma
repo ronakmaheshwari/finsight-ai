@@ -1,0 +1,448 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  ANALYST
+  VIEWER
+}
+
+enum DatasetStatus {
+  UPLOADED
+  VALIDATING
+  VALIDATED
+  FAILED
+}
+
+enum RunStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum CaseStatus {
+  OPEN
+  IN_REVIEW
+  ESCALATED
+  DISMISSED
+  CONFIRMED
+  CLOSED
+}
+
+enum EntityType {
+  EMPLOYEE
+  VENDOR
+  BANK_ACCOUNT
+  TRANSACTION
+  INVOICE
+  PO
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  DELETED
+  DORMANT
+  UNVERIFIED
+}
+
+enum AiInvestigationStatus {
+  PENDING
+  ACCEPTED
+  EDITED
+  REJECTED
+  UNKNOWN
+}
+
+model Organization {
+  id         String       @id @default(cuid())
+  name       String
+  users      User[]
+  engagements Engagement[]
+  ruleConfig RuleConfig[]
+  auditLogs  AuditLog[]
+}
+
+model User {
+  id                     String     @id @default(cuid())
+  orgId                  String
+  name                   String
+  email                  String     @unique
+  password               String
+  role                   Role
+  userStatus             UserStatus @default(UNVERIFIED)
+  forgetPasswordToken    String?    @unique
+  forgetPasswordOtpExpire DateTime?
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
+
+  org                    Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  jwtToken               JWTToken[]
+  ownedEngagements       Engagement[]      @relation("EngagementOwner")
+  memberships            EngagementMember[]
+  datasets               Dataset[]         @relation("DatasetUploader")
+  approvedPurchaseOrders PurchaseOrder[]   @relation("PurchaseOrderApprover")
+  analysisRun            AnalysisRun[]
+  assignedCases          Case[]            @relation("CaseAssignee")
+  authoredCaseNotes      CaseNote[]        @relation("CaseNoteAuthor")
+  approvedInvoices       Invoice[]         @relation("InvoiceApprover")
+  reviewedInvestigations AiInvestigation[] @relation("AiInvestigationReviewer")
+  auditLogs              AuditLog[]
+
+  @@index([orgId])
+}
+
+model JWTToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Engagement {
+  id          String   @id @default(cuid())
+  orgId       String
+  ownerId     String
+  clientName  String
+  title       String
+  periodStart DateTime
+  periodEnd   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner       User               @relation("EngagementOwner", fields: [ownerId], references: [id])
+  org         Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  datasets    Dataset[]
+  members     EngagementMember[]
+  cases       Case[]
+
+  @@index([ownerId])
+  @@index([orgId])
+}
+
+model EngagementMember {
+  engagementId String
+  userId       String
+  createdAt    DateTime @default(now())
+
+  engagement   Engagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([engagementId, userId])
+  @@index([userId])
+}
+
+model Dataset {
+  id               String        @id @default(cuid())
+  engagementId     String
+  uploadedById     String
+  name             String
+  status           DatasetStatus @default(UPLOADED)
+  rowCounts        Json?
+  validationErrors Json?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  engagement       Engagement    @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  uploadedBy       User          @relation("DatasetUploader", fields: [uploadedById], references: [id])
+  employees        Employee[]
+  vendors          Vendor[]
+  bankAccounts     BankAccount[]
+  purchaseOrders   PurchaseOrder[]
+  invoices         Invoice[]
+  transactions     Transaction[]
+  analysisRun      AnalysisRun[]
+
+  @@index([engagementId])
+  @@index([uploadedById])
+}
+
+model Employee {
+  id             String       @id @default(cuid())
+  datasetId      String
+  externalId     String
+  name           String
+  department     String
+  address        String?
+  phone          String?
+  email          String?
+  approvalLimit  Decimal?
+  bankAccountId  String?
+
+  dataset        Dataset      @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  bankAccount    BankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  transactions   Transaction[]
+
+  @@unique([datasetId, externalId])
+  @@index([datasetId])
+  @@index([bankAccountId])
+}
+
+model Vendor {
+  id             String   @id @default(cuid())
+  datasetId      String
+  externalId     String
+  name           String
+  taxId          String?
+  address        String?
+  phone          String?
+  email          String?
+  createdAt      DateTime @default(now())
+  status         String?
+  bankAccountId  String?
+
+  bankAccount    BankAccount?    @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  dataset        Dataset         @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  purchaseOrders PurchaseOrder[]
+  invoice        Invoice[]
+  transactions   Transaction[]
+
+  @@unique([datasetId, externalId])
+  @@index([datasetId])
+}
+
+model BankAccount {
+  id                String   @id @default(cuid())
+  datasetId         String
+  accountNumberHash String
+  bankName          String
+
+  dataset           Dataset   @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  employees         Employee[]
+  vendors           Vendor[]
+
+  @@index([datasetId])
+}
+
+model PurchaseOrder {
+  id           String   @id @default(cuid())
+  datasetId    String
+  externalId   String
+  vendorId     String
+  amount       Decimal
+  issuedDate   DateTime
+  approvedById String?
+
+  dataset      Dataset  @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  vendor       Vendor   @relation(fields: [vendorId], references: [id])
+  approvedBy   User?    @relation("PurchaseOrderApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  invoices     Invoice[]
+
+  @@unique([datasetId, externalId])
+  @@index([datasetId])
+  @@index([vendorId])
+  @@index([approvedById])
+}
+
+model Invoice {
+  id             String   @id @default(cuid())
+  datasetId      String
+  externalId     String
+  vendorId       String
+  poId           String?
+  invoiceNumber  String
+  amount         Decimal
+  invoiceDate    DateTime
+  approvedById   String?
+
+  dataset        Dataset         @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  vendor         Vendor          @relation(fields: [vendorId], references: [id])
+  purchaseOrder  PurchaseOrder?  @relation(fields: [poId], references: [id], onDelete: SetNull)
+  approvedBy     User?           @relation("InvoiceApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  transactions   Transaction[]
+
+  @@index([datasetId, vendorId])
+  @@index([poId])
+  @@index([approvedById])
+}
+
+model Transaction {
+  id           String   @id @default(cuid())
+  datasetId    String
+  externalId   String
+  invoiceId    String
+  vendorId     String?
+  employeeId   String?
+  amount       Decimal
+  postedAt     Decimal
+  description  String?
+
+  dataset      Dataset   @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  invoice      Invoice   @relation(fields: [invoiceId], references: [id])
+  vendor       Vendor?   @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  employee     Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+
+  @@index([datasetId, postedAt])
+  @@index([invoiceId])
+  @@index([vendorId])
+  @@index([employeeId])
+}
+
+model RuleConfig {
+  id      String       @id @default(cuid())
+  orgId   String
+  ruleKey String
+  enabled Boolean      @default(true)
+  weight  Int
+  params  Json
+
+  org     Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, ruleKey])
+}
+
+model AnalysisRun {
+  id            String     @id @default(cuid())
+  datasetId     String
+  status        RunStatus  @default(QUEUED)
+  summary       Json?
+  triggeredById String
+  startedAt     DateTime?
+  finishedAt    DateTime?
+
+  dataset       Dataset    @relation(fields: [datasetId], references: [id])
+  user          User       @relation(fields: [triggeredById], references: [id])
+  signals       RiskSignal[]
+  cases         Case[]
+  graphEdges    GraphEdge[]
+
+  @@index([datasetId])
+  @@index([triggeredById])
+}
+
+model RiskSignal {
+  id             String      @id @default(cuid())
+  runId          String
+  caseId         String?
+  ruleKey        String
+  category       String
+  severity       Severity
+  weight         Int
+  title          String
+  evidence       Json
+  entityType     EntityType
+  entityId       String
+  exposureAmount Decimal?
+
+  analysisRun    AnalysisRun @relation(fields: [runId], references: [id])
+  case           Case?       @relation(fields: [caseId], references: [id], onDelete: SetNull)
+
+  @@index([runId])
+  @@index([caseId])
+  @@index([entityType, entityId])
+}
+
+model Case {
+  id              String      @id @default(cuid())
+  engagementId    String
+  runId           String
+  title           String
+  riskScore       Int
+  severity        Severity
+  exposureAmount  Decimal
+  statsu          CaseStatus  @default(OPEN)
+  assignedToId    String?
+  scoreBreakdown  Json
+  createdAt       DateTime    @default(now())
+
+  signals         RiskSignal[]
+  engagement      Engagement  @relation(fields: [engagementId], references: [id])
+  analysisRun     AnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  assignedTo      User?       @relation("CaseAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  notes           CaseNote[]
+  aiInvestigation AiInvestigation?
+
+  @@index([engagementId])
+  @@index([runId])
+  @@index([assignedToId])
+}
+
+model CaseNote {
+  id        String   @id @default(cuid())
+  caseId    String
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  author    User     @relation("CaseNoteAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([caseId])
+  @@index([authorId])
+}
+
+model AiInvestigation {
+  id            String                @id @default(cuid())
+  caseId        String                @unique
+  model         String
+  promptVersion String
+  output        Json
+  inputTokens   Int
+  outputTokens  Int
+  reviewStatus  AiInvestigationStatus @default(PENDING)
+  reviewedById  String?
+  createdAt     DateTime              @default(now())
+
+  case          Case  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  reviewedBy    User? @relation("AiInvestigationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([reviewedById])
+}
+
+model GraphEdge {
+  id        String    @id @default(cuid())
+  runId     String
+  fromType  EntityType
+  fromId    String
+  toType    EntityType
+  toId      String
+  relation  String
+  weight    Int       @default(1)
+
+  analysisRun AnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@index([fromType, fromId])
+  @@index([toType, toId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  orgId      String
+  userId     String?
+  action     String
+  entityType String
+  entityId   String
+  meta       Json?
+  createdAt  DateTime @default(now())
+
+  org        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user       User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([orgId, createdAt])
+  @@index([userId])
+  @@index([entityType, entityId])
+}
