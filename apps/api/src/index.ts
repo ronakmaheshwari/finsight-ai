@@ -3,6 +3,7 @@ import morgan from "morgan";
 import cors from "cors";
 import { initRedis } from "@repo/cache";
 import { env } from "@repo/utils";
+import router from "./routes/router";
 
 const app: Express = express();
 const port = env.PORT;
@@ -17,7 +18,7 @@ app.use(
 );
 app.use(express.json());
 app.use(morgan("dev"));
-// app.use("/api/v1", );
+app.use("/api/v1", router);
 
 app.get("/", async (req: Request, res: Response) => {
     return res.status(200).type("html").send(`

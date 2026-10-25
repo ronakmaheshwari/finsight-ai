@@ -27,7 +27,7 @@ out/
 build
 dist
 *.tsbuildinfo
-
+.changeset/
 
 # Debug
 npm-debug.log*
