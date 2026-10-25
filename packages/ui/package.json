@@ -1,14 +1,35 @@
 {
   "name": "@repo/ui",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "exports": {
-    "./*": "./src/*.tsx"
+    "./*": "./src/components/*.tsx",
+    "./components/*": "./src/components/*.tsx",
+    "./globals.css": "./src/styles/globals.css",
+    "./hooks/*": "./src/hooks/*.ts",
+    "./lib/*": "./src/lib/*.ts"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
-    "generate:component": "turbo gen react-component",
     "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.9.0",
+    "@shadcn/react": "^0.3.1",
+    "class-variance-authority": "^0.7.1",
+    "cmdk": "^1.1.1",
+    "cn": "^0.5.0",
+    "embla-carousel-react": "^8.6.0",
+    "input-otp": "^1.5.0",
+    "lucide-react": "^1.61.0",
+    "next-themes": "^0.4.6",
+    "radix-ui": "^1.8.1",
+    "react-day-picker": "^10.0.2",
+    "react-hook-form": "^7.91.0",
+    "react-resizable-panels": "^4.15.0",
+    "recharts": "^3.8.0",
+    "sonner": "^2.0.8",
+    "vaul": "^1.1.2"
   },
   "devDependencies": {
     "@repo/eslint-config": "*",
@@ -16,11 +37,15 @@
     "@types/node": "26.4.1",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
-    "eslint": "10.9.1",
+    "eslint": "^10.13.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tailwindcss": "^4.3.3",
+    "tw-animate-css": "^1.4.0",
     "typescript": "7.0.2"
   },
-  "dependencies": {
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   }
 }

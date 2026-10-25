@@ -1,24 +1,36 @@
 {
-  "name": "cache",
+  "name": "@repo/cache",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "build": "tsc -b",
+    "lint": "eslint . --max-warnings 0"
   },
   "keywords": [],
-  "author": "",
+  "author": "Ronak",
   "license": "ISC",
   "type": "commonjs",
+  "exports": {
+    ".": {
+      "types": "./dist/redis.d.ts",
+      "import": "./dist/redis.js",
+      "require": "./dist/redis.js"
+    }
+  },
   "devDependencies": {
+    "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
     "@types/node": "^26.4.1",
     "dotenv": "^16.0.3",
+    "eslint": "^10.13.0",
     "ts-node": "^10.9.2",
     "typescript": "^7.0.2"
   },
   "dependencies": {
+    "@repo/utils": "*",
     "@types/dotenv": "^6.1.1",
     "redis": "^6.3.0"
   }

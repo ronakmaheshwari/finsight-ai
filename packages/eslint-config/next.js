@@ -1,14 +1,14 @@
-import { globalIgnores } from "eslint/config";
+import pluginNext from "@next/eslint-plugin-next";
 import pluginReactHooks from "eslint-plugin-react-hooks";
 import globals from "globals";
-import pluginNext from "@next/eslint-plugin-next";
+import { globalIgnores } from "eslint/config";
 import { config as baseConfig } from "./base.js";
 
 /**
- * A custom ESLint configuration for libraries that use Next.js.
+ * ESLint config for Next.js applications.
  *
  * @type {import("eslint").Linter.Config[]}
- * */
+ */
 export const nextJsConfig = [
   ...baseConfig,
   globalIgnores([

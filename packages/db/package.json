@@ -7,10 +7,11 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "postinstall": "prisma skills sync || exit 0",
     "check-types": "tsc --noEmit",
-    "build": "tsc"
+    "build": "tsc -b",
+    "lint": "eslint . --max-warnings 0"
   },
   "keywords": [],
-  "author": "",
+  "author": "Ronak",
   "license": "ISC",
   "type": "commonjs",
   "exports": {
@@ -30,9 +31,11 @@
     "prisma": "^7.10.1"
   },
   "devDependencies": {
+    "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
     "@types/node": "^26.4.1",
     "dotenv": "^16.0.3",
+    "eslint": "^10.13.0",
     "ts-node": "^10.9.2",
     "typescript": "^7.0.2"
   }

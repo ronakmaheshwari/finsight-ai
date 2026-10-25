@@ -1,5 +1,5 @@
 import dotenv from "dotenv"
-import jwt, { JwtPayload, SignOptions } from "jsonwebtoken"
+import jwt, { type JwtPayload, type SignOptions } from "jsonwebtoken"
 import { env } from "./setting"
 import type { Role } from "@prisma/client"
 
@@ -25,8 +25,7 @@ const jwtTokenGenerator = (userId: string, orgId: string, name: string, email: s
 
 const jwtTokenVerifier = (token: string): {userId: string, orgId: string, name: string, email: string, role: Role} | boolean => {
     try {
-        let decoded: JwtPayload;
-        decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+        const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
         return {
             userId: decoded.userId,
             orgId: decoded.orgId,

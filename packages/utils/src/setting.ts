@@ -1,6 +1,8 @@
+import path from "node:path"
 import dotenv from "dotenv"
 
 dotenv.config()
+dotenv.config({ path: path.resolve(__dirname, "../../.env") })
 
 const requireEnv = (name: string): string => {
     const value = process.env[name];
@@ -38,9 +40,12 @@ const env = {
     get API_BASE_URL(): string {
         return requireEnv("API_BASE_URL")
     },
+    get PORT(): number {
+        return Number(process.env.PORT ?? 3000)
+    }
 }
 
-const REQUIRED_ENV = ["DATABASE_URL", "REDIS_URL", "VITE_API_URL", "VITE_FRONTEND_URL", "API_BASE_URL"] as const;
+const REQUIRED_ENV = ["DATABASE_URL", "REDIS_URL", "VITE_API_URL", "VITE_FRONTEND_URL", "API_BASE_URL", "PORT"] as const;
 
 const validateEnv = (): void => {
     const missing = REQUIRED_ENV.filter((name) => !process.env[name]);

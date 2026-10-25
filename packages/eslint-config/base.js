@@ -1,27 +1,33 @@
-import babelParser from "@babel/eslint-parser";
 import js from "@eslint/js";
 import eslintConfigPrettier from "eslint-config-prettier";
 import turboPlugin from "eslint-plugin-turbo";
 import onlyWarn from "eslint-plugin-only-warn";
+import tseslint from "typescript-eslint";
 
 /**
- * A shared ESLint configuration for the repository.
+ * Shared ESLint flat config for every workspace in the monorepo.
+ *
+ * JavaScript + TypeScript rules only. Runtime specifics (browser globals,
+ * React hooks, Node globals, ...) live in the environment specific configs.
  *
  * @type {import("eslint").Linter.Config[]}
- * */
+ */
 export const config = [
-  js.configs.recommended,
-  eslintConfigPrettier,
   {
-    languageOptions: {
-      parser: babelParser,
-      parserOptions: {
-        requireConfigFile: false,
-        babelOptions: {
-          presets: ["@babel/preset-typescript"],
-        },
-      },
-    },
+    ignores: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/out/**",
+      "**/.next/**",
+      "**/.turbo/**",
+      "**/coverage/**",
+      "**/*.tsbuildinfo",
+    ],
+  },
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+  {
     plugins: {
       turbo: turboPlugin,
     },
@@ -30,11 +36,43 @@ export const config = [
     },
   },
   {
-    plugins: {
-      onlyWarn,
+    files: ["**/*.{ts,tsx,mts,cts}"],
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+        },
+      ],
+      "@typescript-eslint/consistent-type-imports": [
+        "warn",
+        {
+          fixStyle: "inline-type-imports",
+          prefer: "type-imports",
+        },
+      ],
     },
   },
   {
-    ignores: ["dist/**"],
+    files: ["**/*.{js,jsx,mjs,cjs}"],
+    rules: {
+      "no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
+  // Must stay last so it can turn off every rule that conflicts with Prettier.
+  eslintConfigPrettier,
+  {
+    plugins: {
+      onlyWarn,
+    },
   },
 ];

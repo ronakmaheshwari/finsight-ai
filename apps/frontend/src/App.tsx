@@ -1,122 +1,108 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { Button } from "@repo/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@repo/ui/dialog";
+import { Input } from "@repo/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@repo/ui/tooltip";
+import { useState } from "react";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [count, setCount] = useState(0);
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <TooltipProvider>
+      <main className="mx-auto flex min-h-svh w-full max-w-3xl flex-col justify-center gap-8 p-8">
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle>@repo/ui + shadcn/ui</CardTitle>
+            <CardDescription>
+              Every shadcn/ui component lives in{" "}
+              <code className="text-foreground">packages/ui</code> and is
+              imported straight from <code className="text-foreground">@repo/ui</code>.
+            </CardDescription>
+          </CardHeader>
 
-      <div className="ticks"></div>
+          <CardContent>
+            <Tabs defaultValue="buttons">
+              <TabsList>
+                <TabsTrigger value="buttons">Buttons</TabsTrigger>
+                <TabsTrigger value="form">Form</TabsTrigger>
+              </TabsList>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+              <TabsContent value="buttons" className="flex flex-col gap-4 pt-4">
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={() => setCount((current) => current + 1)}>
+                    Count is {count}
+                  </Button>
+                  <Button variant="secondary">Secondary</Button>
+                  <Button variant="outline">Outline</Button>
+                  <Button variant="ghost">Ghost</Button>
+                  <Button variant="destructive">Destructive</Button>
+                </div>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+                <div className="flex flex-wrap gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline">Hover me</Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Tooltips work too</TooltipContent>
+                  </Tooltip>
+
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline">Open dialog</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Shared dialog</DialogTitle>
+                        <DialogDescription>
+                          Rendered by a component from{" "}
+                          <code>packages/ui</code>.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <DialogFooter>
+                        <Button>Confirm</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="form" className="flex flex-col gap-4 pt-4">
+                <Input placeholder="Type something..." />
+                <Input placeholder="Disabled" disabled />
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+
+          <CardFooter className="text-muted-foreground text-sm">
+            Edit <code className="text-foreground">src/App.tsx</code> to get
+            started.
+          </CardFooter>
+        </Card>
+      </main>
+    </TooltipProvider>
+  );
 }
 
-export default App
+export default App;
