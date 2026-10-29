@@ -5,6 +5,14 @@ import type { Role } from "@prisma/client"
 
 dotenv.config()
 
+interface AuthUser {
+    userId: string;
+    orgId: string;
+    name: string;
+    email: string;
+    role: Role;
+}
+
 const jwtTokenGenerator = (userId: string, orgId: string, name: string, email: string, role: Role) => {
     try {
         const token = jwt.sign({
@@ -16,27 +24,43 @@ const jwtTokenGenerator = (userId: string, orgId: string, name: string, email: s
         }, env.JWT_SECRET, {
             expiresIn: env.JWT_EXPIRE as SignOptions["expiresIn"],
         });
-        return token
+        const { exp } = jwt.decode(token) as JwtPayload;
+        
+        return { token, expiresAt: new Date(exp! * 1000) };
     } catch (error) {
         console.error(`Error while creating the token: ${error}`)
         throw Error
     }
 }
 
-const jwtTokenVerifier = (token: string): {userId: string, orgId: string, name: string, email: string, role: Role} | boolean => {
+const jwtTokenVerifier = (token: string): AuthUser | false => {
     try {
-        const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+        const decoded = jwt.verify(token, env.JWT_SECRET);
+
+        if (typeof decoded === "string" || !decoded) {
+            return false;
+        }
+
+        if (
+            typeof decoded.userId !== "string" ||
+            typeof decoded.orgId !== "string" ||
+            typeof decoded.name !== "string" ||
+            typeof decoded.email !== "string" ||
+            typeof decoded.role !== "string"
+        ) {
+            return false;
+        }
+
         return {
             userId: decoded.userId,
             orgId: decoded.orgId,
             name: decoded.name,
             email: decoded.email,
-            role: decoded.role,
-        }
-    } catch (error) {
-        console.error(`Error while verifing the token: ${error}`)
-        return false
+            role: decoded.role as Role,
+        };
+    } catch {
+        return false;
     }
-}
+};
 
 export {jwtTokenGenerator, jwtTokenVerifier};

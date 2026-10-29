@@ -1,4 +1,5 @@
 import { Router } from "express";
+import userRouter from "../controller/userController";
 
 interface RouterInterface {
     path: string;
@@ -10,7 +11,7 @@ const router: Router = Router();
 const allRouters: RouterInterface[] = [
     {
         path: "/user",
-        router: router,
+        router: userRouter,
     },
 ]
 

@@ -4,6 +4,7 @@ import cors from "cors";
 import { initRedis } from "@repo/cache";
 import { env } from "@repo/utils";
 import router from "./routes/router";
+import { errorMiddleware, notFoundMiddleware } from "./middleware/errorMiddleware";
 
 const app: Express = express();
 const port = env.PORT;
@@ -290,6 +291,9 @@ app.get("/health", async(req: Request, res: Response) => {
         })
     }
 })
+
+app.use(notFoundMiddleware);
+app.use(errorMiddleware);
 
 const startServer = async () => {
     try {
