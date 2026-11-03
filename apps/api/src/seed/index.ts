@@ -41,7 +41,16 @@ const main = async (): Promise<void> => {
 
   const existing = await db.organization.findFirst({ where: { name: ORG_NAME } });
   if (existing) {
-    await db.organization.delete({ where: { id: existing.id } });
+    // Delete children before parents: `Dataset.uploadedBy` and
+    // `AnalysisRun.triggeredBy` restrict user deletion, so the engagements
+    // (and their datasets/runs/cases) must go first.
+    await db.$transaction([
+      db.engagement.deleteMany({ where: { orgId: existing.id } }),
+      db.auditLog.deleteMany({ where: { orgId: existing.id } }),
+      db.ruleConfig.deleteMany({ where: { orgId: existing.id } }),
+      db.user.deleteMany({ where: { orgId: existing.id } }),
+      db.organization.delete({ where: { id: existing.id } }),
+    ]);
     console.log("Removed the previous demo organisation");
   }
 
@@ -185,6 +194,15 @@ const main = async (): Promise<void> => {
 
   for (const [index, riskCase] of topCases.entries()) {
     if (index >= 2) break; // the third stays ungenerated for the live demo
+
+    // The row is normally created by `POST /cases/:id/investigation`; the
+    // seeder calls the job directly, so it creates the row first.
+    await db.aiInvestigation.upsert({
+      where: { caseId: riskCase.id },
+      create: { caseId: riskCase.id, requestedById: analyst.id, status: "QUEUED" },
+      update: { status: "QUEUED", error: null, requestedById: analyst.id, reviewStatus: "PENDING" },
+    });
+
     await investigateCase(riskCase.id);
 
     if (index === 1) {

@@ -1,9 +1,7 @@
 import type { Response } from "express";
 import PDFDocument from "pdfkit";
 import db from "@repo/db";
-
-const DISCLAIMER =
-  "Risk indicators identified by automated analysis. They are not findings of wrongdoing and require professional review.";
+import { addFooter, stampPageNumbers } from "./pdfFooter";
 
 const money = (value: unknown): string =>
   new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(Number(value ?? 0));
@@ -20,15 +18,6 @@ const heading = (doc: PDFKit.PDFDocument, text: string): void => {
 
 const paragraph = (doc: PDFKit.PDFDocument, text: string): void => {
   doc.font("Helvetica").fontSize(9).fillColor("#111827").text(text, { lineGap: 2 });
-};
-
-const addFooter = (doc: PDFKit.PDFDocument): void => {
-  const bottom = doc.page.height - 45;
-  doc
-    .font("Helvetica")
-    .fontSize(7)
-    .fillColor("#6b7280")
-    .text(DISCLAIMER, 50, bottom, { width: doc.page.width - 100, align: "center" });
 };
 
 const tableRow = (
@@ -199,18 +188,7 @@ export const streamCasePdf = async (
 
   if (riskCase.assignedTo) paragraph(doc, `Assigned to: ${riskCase.assignedTo.name}`);
 
-  const range = doc.bufferedPageRange();
-  for (let index = range.start; index < range.start + range.count; index += 1) {
-    doc.switchToPage(index);
-    doc
-      .font("Helvetica")
-      .fontSize(7)
-      .fillColor("#6b7280")
-      .text(`Page ${index + 1} of ${range.count}`, 50, doc.page.height - 32, {
-        width: doc.page.width - 100,
-        align: "right",
-      });
-  }
+  stampPageNumbers(doc);
 
   doc.end();
 };
