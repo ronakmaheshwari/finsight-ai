@@ -1,11 +1,14 @@
 {
   "name": "@repo/db",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "postinstall": "prisma skills sync || exit 0",
+    "db:generate": "prisma generate --config prisma7.config.ts",
+    "db:migrate": "prisma migrate deploy --config prisma7.config.ts",
+    "db:push": "prisma db push --config prisma7.config.ts",
+    "db:reset": "prisma migrate reset --force --config prisma7.config.ts && npm run db:seed --workspace=api",
     "check-types": "tsc --noEmit",
     "build": "tsc -b",
     "lint": "eslint . --max-warnings 0"

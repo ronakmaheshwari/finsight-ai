@@ -1,19 +1,18 @@
 {
   "name": "@repo/validation",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "",
-  "main": "validation.js",
+  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "check-types": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
     "build": "tsc -b"
   },
   "exports": {
     ".": {
-      "types": "./dist/validation.d.ts",
-      "import": "./dist/validation.js",
-      "require": "./dist/validation.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
     }
   },
   "keywords": [],

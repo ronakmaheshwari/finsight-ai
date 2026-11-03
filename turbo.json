@@ -1,31 +1,72 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
-  "globalDependencies": ["packages/eslint-config/**", "**/eslint.config.*"],
+  "globalDependencies": [
+    "packages/eslint-config/**",
+    "**/eslint.config.*"
+  ],
   "globalEnv": [
-    "NODE_ENV",
+    "ACCESS_TTL",
+    "ACCOUNT_HASH_SECRET",
+    "AI_MODEL",
+    "ANTHROPIC_API_KEY",
+    "API_BASE_URL",
+    "COOKIE_SECURE",
     "DATABASE_URL",
     "ENCRYPTION_SECRET",
     "JWT_EXPIRE",
+    "JWT_REFRESH_SECRET",
     "JWT_SECRET",
+    "LLM_MAX_OUTPUT_TOKENS",
+    "LLM_MODEL",
+    "MOCK_LLM",
+    "NODE_ENV",
+    "PORT",
+    "REDIS_URL",
+    "REFRESH_TTL_DAYS",
     "SALTROUND",
-    "PORT"
+    "SEED_PASSWORD",
+    "UPLOAD_MAX_MB",
+    "VITE_API_URL",
+    "VITE_FRONTEND_URL",
+    "VITE_SHOW_DEMO_LOGINS",
+    "WEB_ORIGIN"
   ],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**", "dist/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env*"
+      ],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "!.next/dev/**",
+        "dist/**"
+      ]
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": [
+        "^lint"
+      ]
     },
     "check-types": {
-      "dependsOn": ["^check-types", "^build"]
+      "dependsOn": [
+        "^check-types",
+        "^build"
+      ]
     },
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "test": {
+      "dependsOn": [
+        "^build"
+      ]
     }
   }
 }

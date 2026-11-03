@@ -42,7 +42,42 @@ const env = {
     },
     get PORT(): number {
         return Number(process.env.PORT ?? 3000)
-    }
+    },
+    get NODE_ENV(): string {
+        return process.env.NODE_ENV ?? "development"
+    },
+    get WEB_ORIGIN(): string {
+        return process.env.WEB_ORIGIN ?? process.env.VITE_FRONTEND_URL ?? "http://localhost:5173"
+    },
+    get ACCESS_TTL(): string {
+        return process.env.ACCESS_TTL ?? "15m"
+    },
+    get REFRESH_TTL_DAYS(): number {
+        return Number(process.env.REFRESH_TTL_DAYS ?? 7)
+    },
+    get COOKIE_SECURE(): boolean {
+        return process.env.COOKIE_SECURE === "true" || process.env.NODE_ENV === "production"
+    },
+    get ACCOUNT_HASH_SECRET(): string {
+        return process.env.ACCOUNT_HASH_SECRET ?? process.env.ENCRYPTION_SECRET ?? "finsight-account-hash"
+    },
+    get LLM_MODEL(): string {
+        return process.env.LLM_MODEL ?? process.env.AI_MODEL ?? "claude-sonnet-4-5"
+    },
+    get LLM_MAX_OUTPUT_TOKENS(): number {
+        return Number(process.env.LLM_MAX_OUTPUT_TOKENS ?? 2000)
+    },
+    get MOCK_LLM(): boolean {
+        const raw = process.env.MOCK_LLM
+        if (raw !== undefined) return raw === "true"
+        return !process.env.ANTHROPIC_API_KEY
+    },
+    get ANTHROPIC_API_KEY(): string | undefined {
+        return process.env.ANTHROPIC_API_KEY
+    },
+    get UPLOAD_MAX_MB(): number {
+        return Number(process.env.UPLOAD_MAX_MB ?? 10)
+    },
 }
 
 const REQUIRED_ENV = ["DATABASE_URL", "REDIS_URL", "VITE_API_URL", "VITE_FRONTEND_URL", "API_BASE_URL", "PORT"] as const;

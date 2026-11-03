@@ -1,0 +1,33 @@
+{
+  "name": "@repo/shared",
+  "version": "1.0.0",
+  "description": "Enums, rule catalog, Zod schemas and API types shared by the API and the web app",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0"
+  },
+  "keywords": [],
+  "author": "Ronak",
+  "license": "ISC",
+  "type": "commonjs",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "*",
+    "@repo/typescript-config": "*",
+    "@types/node": "^26.4.1",
+    "eslint": "^10.13.0",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "zod": "^4.4.1"
+  }
+}

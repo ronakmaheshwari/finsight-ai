@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -61,21 +60,33 @@ enum UserStatus {
   UNVERIFIED
 }
 
-enum AiInvestigationStatus {
+enum RuleCategory {
+  ANOMALY
+  RELATIONSHIP
+  CONTROL
+}
+
+enum AiJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum AiReviewStatus {
   PENDING
   ACCEPTED
   EDITED
   REJECTED
-  UNKNOWN
 }
 
 model Organization {
-  id         String       @id @default(cuid())
-  name       String
-  users      User[]
+  id          String       @id @default(cuid())
+  name        String
+  users       User[]
   engagements Engagement[]
-  ruleConfig RuleConfig[]
-  auditLogs  AuditLog[]
+  ruleConfigs RuleConfig[]
+  auditLogs   AuditLog[]
 }
 
 model User {
@@ -96,12 +107,13 @@ model User {
   ownedEngagements       Engagement[]      @relation("EngagementOwner")
   memberships            EngagementMember[]
   datasets               Dataset[]         @relation("DatasetUploader")
-  approvedPurchaseOrders PurchaseOrder[]   @relation("PurchaseOrderApprover")
-  analysisRun            AnalysisRun[]
+  triggeredRuns          AnalysisRun[]     @relation("RunTrigger")
   assignedCases          Case[]            @relation("CaseAssignee")
+  decidedCases           Case[]            @relation("CaseDecider")
   authoredCaseNotes      CaseNote[]        @relation("CaseNoteAuthor")
-  approvedInvoices       Invoice[]         @relation("InvoiceApprover")
-  reviewedInvestigations AiInvestigation[] @relation("AiInvestigationReviewer")
+  aiRequests             AiInvestigation[] @relation("AiRequester")
+  aiReviews              AiInvestigation[] @relation("AiReviewer")
+  updatedRules           RuleConfig[]      @relation("RuleUpdater")
   auditLogs              AuditLog[]
 
   @@index([orgId])
@@ -110,10 +122,9 @@ model User {
 model JWTToken {
   id        String    @id @default(cuid())
   userId    String
-  tokenHash String
+  tokenHash String    @unique
   expiresAt DateTime
   revokedAt DateTime?
-  isLatest Boolean @default(false)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
@@ -167,35 +178,54 @@ model Dataset {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
-  engagement       Engagement    @relation(fields: [engagementId], references: [id], onDelete: Cascade)
-  uploadedBy       User          @relation("DatasetUploader", fields: [uploadedById], references: [id])
-  employees        Employee[]
-  vendors          Vendor[]
-  bankAccounts     BankAccount[]
-  purchaseOrders   PurchaseOrder[]
-  invoices         Invoice[]
-  transactions     Transaction[]
-  analysisRun      AnalysisRun[]
+  engagement     Engagement    @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  uploadedBy     User          @relation("DatasetUploader", fields: [uploadedById], references: [id])
+  employees      Employee[]
+  vendors        Vendor[]
+  bankAccounts   BankAccount[]
+  purchaseOrders PurchaseOrder[]
+  invoices       Invoice[]
+  transactions   Transaction[]
+  analysisRun    AnalysisRun[]
 
   @@index([engagementId])
   @@index([uploadedById])
 }
 
-model Employee {
-  id             String       @id @default(cuid())
-  datasetId      String
-  externalId     String
-  name           String
-  department     String
-  address        String?
-  phone          String?
-  email          String?
-  approvalLimit  Decimal?
-  bankAccountId  String?
+model BankAccount {
+  id                String @id @default(cuid())
+  datasetId         String
+  externalId        String
+  accountNumberHash String
+  bankName          String
 
-  dataset        Dataset      @relation(fields: [datasetId], references: [id], onDelete: Cascade)
-  bankAccount    BankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
-  transactions   Transaction[]
+  dataset   Dataset    @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  employees Employee[]
+  vendors   Vendor[]
+
+  @@unique([datasetId, externalId])
+  @@index([datasetId])
+  @@index([datasetId, accountNumberHash])
+}
+
+model Employee {
+  id            String   @id @default(cuid())
+  datasetId     String
+  externalId    String
+  name          String
+  department    String
+  address       String?
+  phone         String?
+  email         String?
+  approvalLimit Decimal?
+  bankAccountId String?
+
+  dataset           Dataset         @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  bankAccount       BankAccount?    @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  transactions      Transaction[]
+  createdVendors    Vendor[]        @relation("VendorCreator")
+  approvedPOs       PurchaseOrder[] @relation("PoApprover")
+  approvedInvoices  Invoice[]       @relation("InvoiceApprover")
 
   @@unique([datasetId, externalId])
   @@index([datasetId])
@@ -203,39 +233,29 @@ model Employee {
 }
 
 model Vendor {
-  id             String   @id @default(cuid())
-  datasetId      String
-  externalId     String
-  name           String
-  taxId          String?
-  address        String?
-  phone          String?
-  email          String?
-  createdAt      DateTime @default(now())
-  status         String?
-  bankAccountId  String?
+  id            String   @id @default(cuid())
+  datasetId     String
+  externalId    String
+  name          String
+  taxId         String?
+  address       String?
+  phone         String?
+  email         String?
+  createdAt     DateTime @default(now())
+  status        String?
+  bankAccountId String?
+  createdById   String?
 
-  bankAccount    BankAccount?    @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
   dataset        Dataset         @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  bankAccount    BankAccount?    @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  createdBy      Employee?       @relation("VendorCreator", fields: [createdById], references: [id], onDelete: SetNull)
   purchaseOrders PurchaseOrder[]
   invoice        Invoice[]
   transactions   Transaction[]
 
   @@unique([datasetId, externalId])
   @@index([datasetId])
-}
-
-model BankAccount {
-  id                String   @id @default(cuid())
-  datasetId         String
-  accountNumberHash String
-  bankName          String
-
-  dataset           Dataset   @relation(fields: [datasetId], references: [id], onDelete: Cascade)
-  employees         Employee[]
-  vendors           Vendor[]
-
-  @@index([datasetId])
+  @@index([createdById])
 }
 
 model PurchaseOrder {
@@ -247,10 +267,10 @@ model PurchaseOrder {
   issuedDate   DateTime
   approvedById String?
 
-  dataset      Dataset  @relation(fields: [datasetId], references: [id], onDelete: Cascade)
-  vendor       Vendor   @relation(fields: [vendorId], references: [id])
-  approvedBy   User?    @relation("PurchaseOrderApprover", fields: [approvedById], references: [id], onDelete: SetNull)
-  invoices     Invoice[]
+  dataset    Dataset   @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  vendor     Vendor    @relation(fields: [vendorId], references: [id])
+  approvedBy Employee? @relation("PoApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  invoices   Invoice[]
 
   @@unique([datasetId, externalId])
   @@index([datasetId])
@@ -259,125 +279,136 @@ model PurchaseOrder {
 }
 
 model Invoice {
-  id             String   @id @default(cuid())
-  datasetId      String
-  externalId     String
-  vendorId       String
-  poId           String?
-  invoiceNumber  String
-  amount         Decimal
-  invoiceDate    DateTime
-  approvedById   String?
+  id            String   @id @default(cuid())
+  datasetId     String
+  externalId    String
+  vendorId      String
+  poId          String?
+  invoiceNumber String
+  amount        Decimal
+  invoiceDate   DateTime
+  approvedById  String?
 
-  dataset        Dataset         @relation(fields: [datasetId], references: [id], onDelete: Cascade)
-  vendor         Vendor          @relation(fields: [vendorId], references: [id])
-  purchaseOrder  PurchaseOrder?  @relation(fields: [poId], references: [id], onDelete: SetNull)
-  approvedBy     User?           @relation("InvoiceApprover", fields: [approvedById], references: [id], onDelete: SetNull)
-  transactions   Transaction[]
+  dataset       Dataset        @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  vendor        Vendor         @relation(fields: [vendorId], references: [id])
+  purchaseOrder PurchaseOrder? @relation(fields: [poId], references: [id], onDelete: SetNull)
+  approvedBy    Employee?      @relation("InvoiceApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  transactions  Transaction[]
 
+  @@unique([datasetId, externalId])
   @@index([datasetId, vendorId])
+  @@index([datasetId, invoiceDate])
   @@index([poId])
   @@index([approvedById])
 }
 
 model Transaction {
-  id           String   @id @default(cuid())
-  datasetId    String
-  externalId   String
-  invoiceId    String
-  vendorId     String?
-  employeeId   String?
-  amount       Decimal
-  postedAt     Decimal
-  description  String?
+  id          String   @id @default(cuid())
+  datasetId   String
+  externalId  String
+  invoiceId   String
+  vendorId    String?
+  employeeId  String?
+  amount      Decimal
+  postedAt    DateTime
+  description String?
 
-  dataset      Dataset   @relation(fields: [datasetId], references: [id], onDelete: Cascade)
-  invoice      Invoice   @relation(fields: [invoiceId], references: [id])
-  vendor       Vendor?   @relation(fields: [vendorId], references: [id], onDelete: SetNull)
-  employee     Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  dataset  Dataset   @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  invoice  Invoice   @relation(fields: [invoiceId], references: [id])
+  vendor   Vendor?   @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  employee Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
 
+  @@unique([datasetId, externalId])
   @@index([datasetId, postedAt])
   @@index([invoiceId])
   @@index([vendorId])
   @@index([employeeId])
 }
 
-model RuleConfig {
-  id      String       @id @default(cuid())
-  orgId   String
-  ruleKey String
-  enabled Boolean      @default(true)
-  weight  Int
-  params  Json
-
-  org     Organization @relation(fields: [orgId], references: [id])
-
-  @@unique([orgId, ruleKey])
-}
-
 model AnalysisRun {
-  id            String     @id @default(cuid())
+  id            String    @id @default(cuid())
   datasetId     String
-  status        RunStatus  @default(QUEUED)
-  summary       Json?
   triggeredById String
+  status        RunStatus @default(QUEUED)
+  jobId         String?
+  ruleSnapshot  Json
+  summary       Json?
+  error         String?
   startedAt     DateTime?
   finishedAt    DateTime?
+  createdAt     DateTime  @default(now())
 
-  dataset       Dataset    @relation(fields: [datasetId], references: [id])
-  user          User       @relation(fields: [triggeredById], references: [id])
-  signals       RiskSignal[]
-  cases         Case[]
-  graphEdges    GraphEdge[]
+  dataset     Dataset      @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  triggeredBy User         @relation("RunTrigger", fields: [triggeredById], references: [id])
+  signals     RiskSignal[]
+  cases       Case[]
 
-  @@index([datasetId])
-  @@index([triggeredById])
+  @@index([datasetId, createdAt])
 }
 
 model RiskSignal {
-  id             String      @id @default(cuid())
+  id             String       @id @default(cuid())
   runId          String
   caseId         String?
   ruleKey        String
-  category       String
+  category       RuleCategory
   severity       Severity
   weight         Int
   title          String
-  evidence       Json
   entityType     EntityType
   entityId       String
+  vendorId       String?
+  entities       Json
+  invoiceIds     String[]
   exposureAmount Decimal?
+  evidence       Json
+  createdAt      DateTime     @default(now())
 
-  analysisRun    AnalysisRun @relation(fields: [runId], references: [id])
-  case           Case?       @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  run  AnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  case Case?       @relation(fields: [caseId], references: [id], onDelete: SetNull)
 
   @@index([runId])
   @@index([caseId])
-  @@index([entityType, entityId])
+  @@index([runId, ruleKey])
+  @@index([runId, vendorId])
 }
 
 model Case {
-  id              String      @id @default(cuid())
-  engagementId    String
-  runId           String
-  title           String
-  riskScore       Int
-  severity        Severity
-  exposureAmount  Decimal
-  statsu          CaseStatus  @default(OPEN)
-  assignedToId    String?
-  scoreBreakdown  Json
-  createdAt       DateTime    @default(now())
+  id                 String     @id @default(cuid())
+  engagementId       String
+  runId              String
+  code               String
+  title              String
+  primaryEntityType  EntityType
+  primaryEntityId    String
+  primaryEntityLabel String
+  entities           Json
+  riskScore          Int
+  severity           Severity
+  exposureAmount     Decimal
+  priority           Float
+  signalCount        Int
+  status             CaseStatus @default(OPEN)
+  assignedToId       String?
+  decisionReason     String?
+  decidedById        String?
+  decidedAt          DateTime?
+  scoreBreakdown     Json
+  graph              Json?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 
-  signals         RiskSignal[]
-  engagement      Engagement  @relation(fields: [engagementId], references: [id])
-  analysisRun     AnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
-  assignedTo      User?       @relation("CaseAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
-  notes           CaseNote[]
-  aiInvestigation AiInvestigation?
+  engagement Engagement      @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  run        AnalysisRun     @relation(fields: [runId], references: [id], onDelete: Cascade)
+  assignedTo User?           @relation("CaseAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  decidedBy  User?           @relation("CaseDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+  signals    RiskSignal[]
+  notes      CaseNote[]
+  ai         AiInvestigation?
 
-  @@index([engagementId])
-  @@index([runId])
+  @@unique([runId, code])
+  @@index([engagementId, status])
+  @@index([runId, priority])
   @@index([assignedToId])
 }
 
@@ -388,46 +419,50 @@ model CaseNote {
   body      String
   createdAt DateTime @default(now())
 
-  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  author    User     @relation("CaseNoteAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  case   Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  author User @relation("CaseNoteAuthor", fields: [authorId], references: [id])
 
-  @@index([caseId])
-  @@index([authorId])
+  @@index([caseId, createdAt])
 }
 
 model AiInvestigation {
-  id            String                @id @default(cuid())
-  caseId        String                @unique
-  model         String
-  promptVersion String
-  output        Json
-  inputTokens   Int
-  outputTokens  Int
-  reviewStatus  AiInvestigationStatus @default(PENDING)
-  reviewedById  String?
-  createdAt     DateTime              @default(now())
+  id             String         @id @default(cuid())
+  caseId         String         @unique
+  requestedById  String
+  status         AiJobStatus    @default(QUEUED)
+  error          String?
+  model          String?
+  promptVersion  String?
+  packetHash     String?
+  output         Json?
+  editedOutput   Json?
+  inputTokens    Int?
+  outputTokens   Int?
+  reviewStatus   AiReviewStatus @default(PENDING)
+  reviewedById   String?
+  reviewedAt     DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
-  case          Case  @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  reviewedBy    User? @relation("AiInvestigationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
-
-  @@index([reviewedById])
+  case        Case  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  requestedBy User  @relation("AiRequester", fields: [requestedById], references: [id])
+  reviewedBy  User? @relation("AiReviewer", fields: [reviewedById], references: [id])
 }
 
-model GraphEdge {
-  id        String    @id @default(cuid())
-  runId     String
-  fromType  EntityType
-  fromId    String
-  toType    EntityType
-  toId      String
-  relation  String
-  weight    Int       @default(1)
+model RuleConfig {
+  id          String   @id @default(cuid())
+  orgId       String
+  ruleKey     String
+  enabled     Boolean  @default(true)
+  weight      Int
+  params      Json
+  updatedById String?
+  updatedAt   DateTime @updatedAt
 
-  analysisRun AnalysisRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  updatedBy User?        @relation("RuleUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
 
-  @@index([runId])
-  @@index([fromType, fromId])
-  @@index([toType, toId])
+  @@unique([orgId, ruleKey])
 }
 
 model AuditLog {
@@ -436,14 +471,15 @@ model AuditLog {
   userId     String?
   action     String
   entityType String
-  entityId   String
+  entityId   String?
   meta       Json?
+  ip         String?
   createdAt  DateTime @default(now())
 
-  org        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  user       User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([orgId, createdAt])
-  @@index([userId])
   @@index([entityType, entityId])
+  @@index([userId])
 }

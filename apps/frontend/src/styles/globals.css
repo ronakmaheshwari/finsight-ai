@@ -1,0 +1,73 @@
+@import "@repo/ui/globals.css";
+
+/* Tailwind skips node_modules, where the workspace package is symlinked. */
+@source "../../../packages/ui/src";
+
+/*
+ * Design tokens (§11.3): calm neutral surfaces, one accent colour, tabular
+ * figures for every number. Light is the default; dark follows the OS.
+ */
+:root {
+  --primary: oklch(0.47 0.16 258);
+  --primary-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.55 0.14 258);
+  --chart-1: oklch(0.47 0.16 258);
+  --chart-2: oklch(0.62 0.14 40);
+  --chart-3: oklch(0.55 0.12 160);
+  --chart-4: oklch(0.58 0.16 300);
+  --chart-5: oklch(0.7 0.13 90);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: oklch(0.16 0.01 258);
+    --foreground: oklch(0.97 0 0);
+    --card: oklch(0.21 0.012 258);
+    --card-foreground: oklch(0.97 0 0);
+    --popover: oklch(0.21 0.012 258);
+    --popover-foreground: oklch(0.97 0 0);
+    --primary: oklch(0.72 0.13 258);
+    --primary-foreground: oklch(0.16 0.01 258);
+    --secondary: oklch(0.27 0.01 258);
+    --secondary-foreground: oklch(0.97 0 0);
+    --muted: oklch(0.27 0.01 258);
+    --muted-foreground: oklch(0.72 0.01 258);
+    --accent: oklch(0.3 0.02 258);
+    --accent-foreground: oklch(0.97 0 0);
+    --destructive: oklch(0.7 0.19 25);
+    --border: oklch(1 0 0 / 12%);
+    --input: oklch(1 0 0 / 16%);
+    --ring: oklch(0.72 0.13 258);
+    --sidebar: oklch(0.19 0.01 258);
+    --sidebar-foreground: oklch(0.97 0 0);
+    --sidebar-border: oklch(1 0 0 / 12%);
+    --chart-1: oklch(0.72 0.13 258);
+    --chart-2: oklch(0.72 0.14 40);
+    --chart-3: oklch(0.7 0.12 160);
+    --chart-4: oklch(0.72 0.16 300);
+    --chart-5: oklch(0.8 0.13 90);
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-feature-settings: "cv11", "ss01";
+    min-height: 100svh;
+  }
+
+  /* Tabular figures everywhere numbers are compared. */
+  .tabular-nums,
+  table,
+  input[type="number"] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}

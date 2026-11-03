@@ -1,159 +1,129 @@
-# Turborepo starter
+# FinSight AI
 
-This Turborepo starter is maintained by the Turborepo core team.
+AI-assisted financial risk investigation. Upload procurement data (vendors,
+employees, bank accounts, purchase orders, invoices, transactions), run a
+deterministic risk engine over it, and work the resulting cases: prioritised
+evidence, an AI-written investigation for the reviewer, a decision trail and a
+PDF export.
 
-## Using this example
+> **Language rule.** FinSight never states that fraud occurred. It surfaces
+> **risk indicators** that **require review**. Every AI output carries the same
+> disclaimer and must be accepted, edited or rejected by a human.
 
-Run the following command:
+## Monorepo layout
 
-```sh
-npx create-turbo@latest
-```
+| Path | What it is |
+| --- | --- |
+| `apps/api` | Express 5 API (`/api/v1`), risk engine, AI investigation, PDF export, BullMQ worker, seeders |
+| `apps/frontend` | React 19 + Vite web app (TanStack Query, Tailwind, shadcn via `@repo/ui`) |
+| `packages/db` | Prisma schema, migrations and client |
+| `packages/shared` | Enums, rule catalog, Zod schemas and API types used by both apps |
+| `packages/utils` | Environment validation, JWT helpers |
+| `packages/validation` | Legacy Zod validation helpers |
+| `packages/cache` | Redis client |
+| `packages/ui` | Shared shadcn/Radix component library |
+| `docs/DEVIATIONS.md` | Every deliberate difference from `Format.md` |
 
-## What's inside?
+## Prerequisites
 
-This Turborepo includes the following packages/apps:
+- Node.js 24+ and npm 11 (the repo pins both in `package.json`).
+- PostgreSQL 16 and Redis 7 — either locally or through Docker Compose.
+- No Anthropic key is needed: with `MOCK_LLM=true` (the default when
+  `ANTHROPIC_API_KEY` is empty) the AI investigation is generated
+  deterministically.
 
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `@next/eslint-plugin-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+## Run it with Docker
 
 ```sh
-cd my-turborepo
-turbo build
+docker compose up --build
 ```
 
-Without global `turbo`, use your package manager:
+- Web app: <http://localhost:8080>
+- API: <http://localhost:3000/api/v1> (`/health`, `/ready`)
+
+Migrations run as a one-off `migrate` service before the API starts. Seed the
+demo data once the stack is up:
 
 ```sh
-cd my-turborepo
-npx turbo build
-npm exec turbo build
-npm exec turbo build
+docker compose run --rm api node apps/api/dist/seed/index.js
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+## Run it locally
 
 ```sh
-turbo build --filter=docs
+cp .env.Example .env        # fill in DATABASE_URL and REDIS_URL
+npm install
+npm run db:generate
+npm run db:migrate
+npm run db:seed             # demo org, users, engagements, datasets, runs and cases
+npm run dev                 # API on :3000, web on :5173
 ```
 
-Without global `turbo`:
+`npm run db:seed` also prints a verification table: every planted demo scenario
+must be detected before the seeder exits successfully.
+
+## Demo accounts
+
+All demo users share the password from `SEED_PASSWORD` (default `Demo@1234`).
+
+| Email | Role | Sees |
+| --- | --- | --- |
+| `admin@demo.com` | ADMIN | Everything, including users and rule settings |
+| `manager@demo.com` | MANAGER | Rules, audit log, all cases, decisions |
+| `analyst@demo.com` | ANALYST | Datasets, runs, cases, AI investigation |
+| `viewer@demo.com` | VIEWER | Read-only cases and decisions already made |
+
+## Scripts
+
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | API + web in watch mode |
+| `npm run build` | Builds every workspace |
+| `npm test` | API engine tests + web unit tests |
+| `npm run lint` | ESLint everywhere, zero warnings allowed |
+| `npm run check-types` | `tsc` for every workspace |
+| `npm run db:generate` / `db:migrate` / `db:seed` / `db:reset` | Prisma lifecycle |
+| `npm run seed:verify` | Runs the engine over the generated demo data and prints the scenario table |
+| `npm run seed:export-demo-workbook` | Writes the demo data to `seed-data/finsight_test_data.xlsx` |
+| `npm run worker` | BullMQ worker (analysis + AI jobs) |
+
+## How an analysis works
+
+1. **Upload.** Six entity files are validated row by row; invalid rows are
+   reported with their row numbers and nothing is inserted (422). Templates for
+   every entity are downloadable as CSV and XLSX.
+2. **Run.** The deterministic engine (`apps/api/src/utils/riskEngine`) applies
+   the rule catalog, computes per-rule strength and produces signals, a 0–100
+   score per entity group, and cases. Same input, same output — always.
+3. **Investigate.** A case can be sent to the AI service. Evidence is masked
+   before it leaves the process (aliases, no names, no account numbers), the
+   response is validated against a Zod schema, and every finding must cite a
+   signal that exists in the case.
+4. **Review.** An analyst accepts, edits or rejects the investigation; a manager
+   confirms or dismisses the case. Every transition is written to the audit log.
+5. **Export.** A confirmed case can be exported as a PDF containing the
+   evidence, the reviewer's decision and the language-rule disclaimer.
+
+## Roles
+
+`ADMIN`, `MANAGER`, `ANALYST`, `VIEWER`. The API enforces the matrix on every
+route; the web app additionally hides what a role cannot use. Every query is
+scoped by `orgId`, so a cross-organisation id returns 404 rather than 403.
+
+## Environment
+
+Every key is documented in `.env.Example`. The API validates the required ones
+at boot and exits on a missing value. Never commit a real secret; bank account
+numbers are stored only as HMAC hashes.
+
+## Tests and quality gates
 
 ```sh
-npx turbo build --filter=docs
-npm exec turbo build --filter=docs
-npm exec turbo build --filter=docs
+npm run check-types
+npm run lint
+npm test
 ```
 
-### Develop
-
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo dev
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo dev
-npm exec turbo dev
-npm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-npm exec turbo dev --filter=web
-npm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-npm exec turbo login
-npm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-npm exec turbo link
-npm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+The backend uses Node's built-in test runner over the compiled output; the web
+app uses Vitest + Testing Library. See `docs/DEVIATIONS.md` for the tests that
+need a live database or browser and could not run in this environment.

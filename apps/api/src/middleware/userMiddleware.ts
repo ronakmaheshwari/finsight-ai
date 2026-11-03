@@ -1,14 +1,6 @@
-import type { Role } from "@prisma/client";
-import { jwtTokenVerifier } from "@repo/utils";
 import type { NextFunction, Request, Response } from "express";
-
-interface AuthUser {
-    userId: string;
-    orgId: string;
-    name: string;
-    email: string;
-    role: Role;
-}
+import { ApiError, jwtTokenVerifier } from "@repo/utils";
+import type { AuthUser } from "../lib/access";
 
 declare module "express-serve-static-core" {
     interface Request {
@@ -16,33 +8,32 @@ declare module "express-serve-static-core" {
     }
 }
 
-const userMiddleware = async (req: Request, res: Response,next: NextFunction) => {
+/**
+ * Verifies the bearer access token and attaches `{ userId, orgId, role }` to the
+ * request. Every protected route starts with this middleware.
+ */
+const userMiddleware = async (req: Request, _res: Response, next: NextFunction) => {
     try {
         const authHeader = req.headers.authorization;
-        if(!authHeader || !authHeader.startsWith("Bearer ")) {
-            return res.status(401).json({
-                success: false,
-                message: "You are unauthorized to access these services"
-            })
-        };
 
-        const token = authHeader.split(" ")[1] as string;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            next(ApiError.unauthorized());
+            return;
+        }
+
+        const token = authHeader.slice("Bearer ".length).trim();
         const decoded = jwtTokenVerifier(token);
-        if (!decoded || typeof decoded === "boolean") {
-            return res.status(401).json({
-                success: false,
-                message: "Invalid or expired token",
-            });
+
+        if (!decoded) {
+            next(ApiError.unauthorized("Invalid or expired token"));
+            return;
         }
 
         req.user = decoded;
         next();
     } catch (error) {
-        return res.status(500).json({
-            message: "Internal server error",
-            success: false,
-            error: error
-        });
+        console.error(`Error took place while verifying the access token: ${error}`);
+        next(ApiError.internal());
     }
 };
 

@@ -1,0 +1,15 @@
+node_modules
+**/node_modules
+**/dist
+**/.turbo
+**/*.tsbuildinfo
+.git
+.gitignore
+.env
+.env.*
+!.env.Example
+seed-data
+coverage
+.DS_Store
+*.md
+!README.md

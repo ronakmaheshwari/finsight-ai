@@ -1,326 +1,208 @@
-import {Router, type Request, type Response} from "express";
-import {addUserValidation, loginValidation, signupValidation} from "../../../../packages/validation/dist/userValidation"
-import db, { UserStatus } from "@repo/db";
-import { ApiError, hashPassword, jwtTokenGenerator, verifyPassword } from "@repo/utils";
+import { type Request, type Response, Router } from "express";
+import db from "@repo/db";
+import {
+  createUserSchema,
+  updateUserSchema,
+  userListQuerySchema,
+  idParamSchema,
+} from "@repo/shared";
+import { ApiError, hashPassword } from "@repo/utils";
 import userMiddleware from "../middleware/userMiddleware";
-import { editUserValidation } from "@repo/validation";
+import { requireRole } from "../middleware/requireRole";
+import { AUDIT_ACTIONS, audit } from "../lib/audit";
+import { getPaging, pageMeta } from "../lib/pagination";
 
 const userRouter: Router = Router();
 
-userRouter.post("/signup", async (req: Request, res: Response) => {
-    try {
-        const parsed = signupValidation.safeParse(req.body);
-        if(!parsed.success) {
-            throw ApiError.validation({
-                error: JSON.stringify(parsed.error.flatten().fieldErrors),
-            })
-        }
-
-        const {name, email, password, role} = parsed.data;
-        const findEmail = await db.user.findUnique({
-            where: {
-                email: email
-            }
-        });
-
-        if(findEmail && findEmail.userStatus !== UserStatus.UNVERIFIED) {
-            throw ApiError.emailAlreadyExists("Email already exists in the system")
-        }
-
-        const hashedPassword = await hashPassword(password);
-        const org = await db.organization.findFirst({
-            where: {
-                name: "gt"
-            },
-            select: {
-                id: true
-            },
-            orderBy: {
-                name: "asc"
-            }
-        });
-
-        if(!org) {
-            throw ApiError.notFound("No Organization in the system")
-        };
-
-        const addUser = await db.user.create({
-            data: {
-                orgId: org.id as string,
-                name: name,
-                email: email,
-                role: role,
-                password: hashedPassword,
-                userStatus: "ACTIVE"
-            }
-        })
-
-        const {token, expiresAt} = jwtTokenGenerator(addUser.id, addUser.orgId, addUser.name, addUser.email, addUser.role);
-        await db.jWTToken.create({
-            data: {
-                userId: addUser.id,
-                tokenHash: token,
-                expiresAt: expiresAt,
-                isLatest: true,
-            }
-        });
-
-        return res.status(201).json({
-            success: true,
-            message: "User was successfully created",
-            token: token,
-        })
-    } catch (error) {
-        console.error(`Error took place while signing up a user: ${error}`);
-        throw ApiError.internal();
-    }
+const toUserRow = (user: {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  userStatus: string;
+  createdAt: Date;
+}) => ({
+  id: user.id,
+  name: user.name,
+  email: user.email,
+  role: user.role,
+  isActive: user.userStatus === "ACTIVE",
+  createdAt: user.createdAt.toISOString(),
 });
 
-userRouter.post("/login", async(req: Request, res: Response) => {
-    try {
-        const parsed = loginValidation.safeParse(req.body);
+userRouter.get("/", userMiddleware, requireRole("ADMIN"), async (req: Request, res: Response) => {
+  try {
+    if (!req.user) throw ApiError.unauthorized();
 
-        if(!parsed.success) {
-            throw ApiError.validation({
-                error: JSON.stringify(parsed.error.flatten().fieldErrors),
-            })
-        }
-
-        const {email, password} = parsed.data;
-
-        const findEmail = await db.user.findUnique({
-            where: {
-                email: email
-            }
-        })
-
-        if(!findEmail) {
-            throw ApiError.notFound("No user in the system")
-        }
-
-        if(findEmail.userStatus !== "ACTIVE") {
-            throw ApiError.forbidden("User is not active, please signup")
-        }
-
-        const checkPassword = await verifyPassword(password, findEmail.password);
-        if(!checkPassword) {
-            throw ApiError.invalidCredentials("Invalid password was provided")
-        }
-
-        const {token, expiresAt} = jwtTokenGenerator(findEmail.id, findEmail.orgId, findEmail.name, findEmail.email, findEmail.role);
-        await db.jWTToken.create({
-            data: {
-                userId: findEmail.id,
-                tokenHash: token,
-                expiresAt: expiresAt,
-                isLatest: true,
-            }
-        });
-
-        return res.status(201).json({
-            success: true,
-            message: "User successfully logined",
-            token: token,
-        })
-    } catch (error) {
-        console.error(`Error took place while logging a user: ${error}`);
-        throw ApiError.internal();
+    const parsed = userListQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      throw ApiError.badRequest(parsed.error.issues[0]?.message ?? "Invalid query");
     }
+
+    const paging = getPaging(parsed.data);
+    const where = {
+      orgId: req.user.orgId,
+      ...(parsed.data.role ? { role: parsed.data.role } : {}),
+      ...(parsed.data.isActive
+        ? { userStatus: parsed.data.isActive === "true" ? ("ACTIVE" as const) : { not: "ACTIVE" as const } }
+        : {}),
+      ...(parsed.data.q
+        ? {
+            OR: [
+              { name: { contains: parsed.data.q, mode: "insensitive" as const } },
+              { email: { contains: parsed.data.q, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
+    };
+
+    const [total, users] = await Promise.all([
+      db.user.count({ where }),
+      db.user.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: paging.skip,
+        take: paging.take,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          userStatus: true,
+          createdAt: true,
+        },
+      }),
+    ]);
+
+    return res.status(200).json({ success: true, data: users.map(toUserRow), meta: pageMeta(total, paging) });
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    console.error(`Error took place while listing users: ${error}`);
+    throw ApiError.internal();
+  }
 });
 
-userRouter.get("/me", userMiddleware , async (req: Request, res: Response) => {
+userRouter.get(
+  "/directory",
+  userMiddleware,
+  requireRole("ADMIN", "MANAGER"),
+  async (req: Request, res: Response) => {
     try {
-        if(!req.user) {
-            throw ApiError.unauthorized()
-        }
+      if (!req.user) throw ApiError.unauthorized();
 
-        const user = req.user;
+      const users = await db.user.findMany({
+        where: { orgId: req.user.orgId, userStatus: "ACTIVE" },
+        orderBy: { name: "asc" },
+        select: { id: true, name: true, email: true, role: true },
+      });
 
-        const findUser = await db.user.findUnique({
-            where: {
-                id: user.userId as string
-            },
-            select: {
-                email: true,
-                name: true,
-                role: true,
-                userStatus: true,
-                org: {
-                    select: {
-                        name: true,
-                    }
-                },
-            }
-        });
-
-        if(!findUser) {
-            throw ApiError.notFound("The given user details doesnt exist in the system")
-        }
-
-        if(findUser.userStatus !== "ACTIVE") {
-            throw ApiError.forbidden("The given user is not active in the system. Please contact the admin")
-        }
-
-        return res.status(200).json({
-            success: true,
-            message: "User fetched successfully",
-            user: findUser,
-        })
+      return res.status(200).json({ success: true, data: users });
     } catch (error) {
-        console.error(`Error took place while seeing his data: ${error}`);
-        throw ApiError.internal();
+      if (error instanceof ApiError) throw error;
+      console.error(`Error took place while reading the user directory: ${error}`);
+      throw ApiError.internal();
     }
-})
+  },
+);
 
-userRouter.post("/add-user", userMiddleware , async (req: Request, res: Response) => {
-    try {
-        if(!req.user) {
-            throw ApiError.unauthorized()
-        }
+userRouter.post("/", userMiddleware, requireRole("ADMIN"), async (req: Request, res: Response) => {
+  try {
+    if (!req.user) throw ApiError.unauthorized();
 
-        const user = req.user;
-
-        if(user.role === "ADMIN") {
-            throw ApiError.unauthorized("Only admin users can access these services");
-        }
-
-        const parsed = addUserValidation.safeParse(req.body);
-        if(!parsed.success) {
-            throw ApiError.validation({
-                error: JSON.stringify(parsed.error.flatten().fieldErrors),
-            })
-        } 
-
-        const {email, name, role} = parsed.data;
-
-        const findEmail = await db.user.findUnique({
-            where: {
-                email: email
-            }
-        })
-
-        if(findEmail) {
-            throw ApiError.emailAlreadyExists();
-        }
-
-        const hashedPassword = await hashPassword("Password@123");
-
-        await db.user.create({
-            data: {
-                name: name,
-                email: email,
-                password: hashedPassword,
-                role: role,
-                orgId: user.orgId,
-            }
-        });
-
-        return res.status(201).json({
-            message: "The given user was successfully created",
-            success: true,
-        })
-    } catch (error) {
-        console.error(`Error took place while adding user data: ${error}`);
-        throw ApiError.internal();
+    const parsed = createUserSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw ApiError.badRequest(parsed.error.issues[0]?.message ?? "Invalid user");
     }
+
+    const existing = await db.user.findUnique({ where: { email: parsed.data.email } });
+    if (existing) throw ApiError.emailAlreadyExists();
+
+    const password = await hashPassword(parsed.data.password);
+
+    const user = await db.user.create({
+      data: {
+        orgId: req.user.orgId,
+        name: parsed.data.name,
+        email: parsed.data.email,
+        role: parsed.data.role,
+        password,
+        userStatus: "ACTIVE",
+      },
+    });
+
+    await audit({
+      orgId: req.user.orgId,
+      userId: req.user.userId,
+      action: AUDIT_ACTIONS.USER_CREATED,
+      entityType: "User",
+      entityId: user.id,
+      meta: { role: user.role },
+      ip: req.ip ?? null,
+    });
+
+    return res.status(201).json({ success: true, data: toUserRow(user) });
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    console.error(`Error took place while creating a user: ${error}`);
+    throw ApiError.internal();
+  }
 });
 
-userRouter.patch("edit-user/:email", userMiddleware, async(req: Request, res: Response) => {
-    try {
-        if(!req.user) {
-            throw ApiError.unauthorized()
-        }
+userRouter.patch("/:id", userMiddleware, requireRole("ADMIN"), async (req: Request, res: Response) => {
+  try {
+    if (!req.user) throw ApiError.unauthorized();
 
-        const user = req.user;
+    const params = idParamSchema.safeParse(req.params);
+    if (!params.success) throw ApiError.badRequest("Invalid user id");
 
-        if(user.role === "ADMIN") {
-            throw ApiError.unauthorized("Only admin users can access these services");
-        }
-
-        const email = req.params.email;
-
-        if(!email) {
-            throw ApiError.badRequest("Please provide the email")
-        }
-
-        const parsed = editUserValidation.safeParse(req.body);
-        if(!parsed.success) {
-            throw ApiError.validation({
-                error: JSON.stringify(parsed.error.flatten().fieldErrors),
-            })
-        } 
-
-        const {name, role, organizationId, userStatus} = parsed.data
-
-        const findEmail = await db.user.findUnique({
-            where: {
-                email: email as string
-            }
-        });
-
-        if(!findEmail) {
-            throw ApiError.notFound()
-        }
-
-        await db.user.update({
-            where: {
-                email: email as string
-            },
-            data: {
-                name,
-                role,
-                orgId: organizationId,
-                userStatus
-            }
-        })
-
-        return res.status(200).json({
-            message: "The given user details were successfully updated",
-            success: true,
-        })
-
-    } catch (error) {
-        console.error(`Error took place while editing user data: ${error}`);
-        throw ApiError.internal();
+    const parsed = updateUserSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw ApiError.badRequest(parsed.error.issues[0]?.message ?? "Invalid update");
     }
+
+    const target = await db.user.findUnique({ where: { id: params.data.id } });
+    if (!target || target.orgId !== req.user.orgId) throw ApiError.notFound("User not found");
+
+    const isSelf = target.id === req.user.userId;
+    if (isSelf && parsed.data.role && parsed.data.role !== target.role) {
+      throw ApiError.badRequest("You cannot change your own role");
+    }
+    if (isSelf && parsed.data.isActive === false) {
+      throw ApiError.badRequest("You cannot deactivate yourself");
+    }
+
+    const password = parsed.data.password ? await hashPassword(parsed.data.password) : undefined;
+
+    const updated = await db.user.update({
+      where: { id: target.id },
+      data: {
+        ...(parsed.data.name ? { name: parsed.data.name } : {}),
+        ...(parsed.data.role ? { role: parsed.data.role } : {}),
+        ...(parsed.data.isActive !== undefined
+          ? { userStatus: parsed.data.isActive ? "ACTIVE" : "INACTIVE" }
+          : {}),
+        ...(password ? { password } : {}),
+      },
+    });
+
+    if (parsed.data.role && parsed.data.role !== target.role) {
+      await audit({
+        orgId: req.user.orgId,
+        userId: req.user.userId,
+        action: AUDIT_ACTIONS.USER_ROLE_CHANGED,
+        entityType: "User",
+        entityId: target.id,
+        meta: { from: target.role, to: parsed.data.role },
+        ip: req.ip ?? null,
+      });
+    }
+
+    return res.status(200).json({ success: true, data: toUserRow(updated) });
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    console.error(`Error took place while updating a user: ${error}`);
+    throw ApiError.internal();
+  }
 });
-
-userRouter.patch("/logout", userMiddleware, async(req: Request, res: Response) => {
-    try {
-        if(!req.user) {
-            throw ApiError.unauthorized()
-        }
-
-        const user = req.user;
-
-        const findUser = await db.jWTToken.findFirst({
-            where: {
-                userId: user.userId as string
-            }
-        })
-
-        if(!findUser) {
-            throw ApiError.notFound()
-        }
-
-        await db.jWTToken.update({
-            where: {
-                userId: findUser.id,
-                isLatest: true,
-            },
-            data: {
-                isLatest: false,
-            }
-        })
-
-        return res.status(200).json({
-            message: "The given jwt was removed",
-            success: true
-        })
-    } catch (error) {
-        console.error(`Error took place while logging user out: ${error}`);
-        throw ApiError.internal();
-    }
-})
 
 export default userRouter;

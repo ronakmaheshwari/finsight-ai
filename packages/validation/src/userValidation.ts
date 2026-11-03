@@ -1,4 +1,4 @@
-import z, { email } from "zod"
+import z from "zod";
 import {Role, UserStatus} from "@repo/db"
 
 const signupValidation = z.object({

@@ -1,5 +1,24 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { type Prisma, PrismaClient, Role, RunStatus, DatasetStatus, Severity, CaseStatus, EntityType, UserStatus, AiInvestigationStatus} from "@prisma/client";
+import {
+    type Prisma,
+    PrismaClient,
+    Role,
+    RunStatus,
+    DatasetStatus,
+    Severity,
+    CaseStatus,
+    EntityType,
+    UserStatus,
+    RuleCategory,
+    AiJobStatus,
+    AiReviewStatus,
+    type Employee,
+    type Vendor,
+    type BankAccount,
+    type PurchaseOrder,
+    type Invoice,
+    type Transaction,
+} from "@prisma/client";
 import { env } from "@repo/utils/setting";
 
 declare global {
@@ -15,5 +34,23 @@ const db = globalThis.prisma ?? new PrismaClient({
 
 if (process.env.NODE_ENV !== "production") global.prisma = db;
 
-export {Prisma, Role, RunStatus, DatasetStatus, Severity, CaseStatus, EntityType, UserStatus, AiInvestigationStatus}
+export {
+    Prisma,
+    Role,
+    RunStatus,
+    DatasetStatus,
+    Severity,
+    CaseStatus,
+    EntityType,
+    UserStatus,
+    RuleCategory,
+    AiJobStatus,
+    AiReviewStatus,
+    type Employee,
+    type Vendor,
+    type BankAccount,
+    type PurchaseOrder,
+    type Invoice,
+    type Transaction,
+}
 export default db;

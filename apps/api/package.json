@@ -6,9 +6,14 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc -b && node --watch dist/index.js",
+    "worker": "node dist/worker.js",
+    "worker:dev": "tsc -b && node --watch dist/worker.js",
+    "db:seed": "tsc -b && node dist/seed/index.js",
+    "seed:export-demo-workbook": "tsc -b && node dist/seed/exportWorkbook.js",
+    "seed:verify": "tsc -b && node dist/seed/verifyScenarios.js",
     "check-types": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "tsc -b && node --test 'dist/**/*.test.js'"
   },
   "keywords": [],
   "author": "",
@@ -22,6 +27,7 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
+    "@types/multer": "^2.3.0",
     "@types/node": "^26.4.1",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
@@ -31,13 +37,22 @@
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.12.1",
     "ts-node": "^10.9.2",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "@types/pdfkit": "^0.17.0"
   },
   "dependencies": {
-    "@repo/validation":"*",
-    "@repo/cache":"*",
+    "@repo/cache": "*",
     "@repo/db": "*",
     "@repo/utils": "*",
-    "express": "^5.3.0"
+    "@repo/validation": "*",
+    "exceljs": "^4.4.0",
+    "express": "^5.3.0",
+    "multer": "^2.5.0",
+    "@repo/shared": "*",
+    "@anthropic-ai/sdk": "^0.70.0",
+    "bullmq": "^5.63.0",
+    "pdfkit": "^0.17.0",
+    "zod-to-json-schema": "^3.25.0",
+    "zod": "^4.6.7"
   }
 }
