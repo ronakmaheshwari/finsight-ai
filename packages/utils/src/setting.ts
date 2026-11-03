@@ -1,8 +1,21 @@
 import path from "node:path"
 import dotenv from "dotenv"
 
-dotenv.config()
-dotenv.config({ path: path.resolve(__dirname, "../../.env") })
+// Load the first `.env` that exists. The API can be started from several
+// working directories (`npm run dev` uses `apps/api`, the container uses the
+// repository root), so try the cwd, its parent, and the workspace root next to
+// this package before giving up. dotenv never overrides a value that is already
+// set, so the closest file wins.
+const envFiles = [
+    path.resolve(process.cwd(), ".env"),
+    path.resolve(process.cwd(), "../../.env"),
+    path.resolve(__dirname, "../../../.env"), // <repo>/packages/utils/{src,dist} -> <repo>
+    path.resolve(__dirname, "../../.env"),
+]
+
+for (const file of envFiles) {
+    dotenv.config({ path: file })
+}
 
 const requireEnv = (name: string): string => {
     const value = process.env[name];
