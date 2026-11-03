@@ -1,4 +1,21 @@
-const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:3000/api/v1";
+/**
+ * `VITE_API_URL` may be given either as the bare host (`http://localhost:3000`)
+ * or as the versioned base (`http://localhost:3000/api/v1`); both must work, and
+ * a trailing slash must not produce `//auth/login`.
+ */
+export const normalizeBaseUrl = (raw: string): string => {
+  const trimmed = raw.trim().replace(/\/+$/, "");
+  try {
+    const url = new URL(trimmed);
+    return url.pathname === "" || url.pathname === "/" ? `${url.origin}/api/v1` : `${url.origin}${url.pathname}`;
+  } catch {
+    return trimmed;
+  }
+};
+
+const BASE_URL = normalizeBaseUrl(
+  (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:3000/api/v1",
+);
 
 /**
  * Typed API failure. The server always answers with

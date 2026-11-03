@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 
-import { ApiError, api, refreshSession, setAccessToken, setRefreshHandler } from "./client";
+import { ApiError, api, normalizeBaseUrl, refreshSession, setAccessToken, setRefreshHandler } from "./client";
 
 const jsonResponse = (body: unknown, status: number): Response =>
   new Response(JSON.stringify(body), {
@@ -92,5 +92,24 @@ describe("api retry", () => {
       message: "Role not allowed",
       details: { role: "VIEWER" },
     });
+  });
+});
+
+describe("normalizeBaseUrl", () => {
+  it("keeps a versioned base as written", () => {
+    expect(normalizeBaseUrl("http://localhost:3000/api/v1")).toBe("http://localhost:3000/api/v1");
+  });
+
+  it("adds the version segment to a bare host", () => {
+    expect(normalizeBaseUrl("http://localhost:3000")).toBe("http://localhost:3000/api/v1");
+    expect(normalizeBaseUrl("http://localhost:3000/")).toBe("http://localhost:3000/api/v1");
+  });
+
+  it("never leaves a trailing slash or a double slash", () => {
+    expect(normalizeBaseUrl(" https://api.example.com/api/v1/// ")).toBe("https://api.example.com/api/v1");
+  });
+
+  it("keeps a relative base for a proxied deployment", () => {
+    expect(normalizeBaseUrl("/api/v1")).toBe("/api/v1");
   });
 });

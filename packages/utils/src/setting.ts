@@ -1,11 +1,6 @@
 import path from "node:path"
 import dotenv from "dotenv"
 
-// Load the first `.env` that exists. The API can be started from several
-// working directories (`npm run dev` uses `apps/api`, the container uses the
-// repository root), so try the cwd, its parent, and the workspace root next to
-// this package before giving up. dotenv never overrides a value that is already
-// set, so the closest file wins.
 const envFiles = [
     path.resolve(process.cwd(), ".env"),
     path.resolve(process.cwd(), "../../.env"),
@@ -60,7 +55,10 @@ const env = {
         return process.env.NODE_ENV ?? "development"
     },
     get WEB_ORIGIN(): string {
-        return process.env.WEB_ORIGIN ?? process.env.VITE_FRONTEND_URL ?? "http://localhost:5173"
+        const origin = process.env.WEB_ORIGIN ?? process.env.VITE_FRONTEND_URL ?? "http://localhost:5173"
+        // Browsers send `Origin` without a trailing slash, so `http://host:5173/`
+        // in `.env` would never match and every request would fail CORS.
+        return origin.replace(/\/+$/, "")
     },
     get ACCESS_TTL(): string {
         return process.env.ACCESS_TTL ?? "15m"

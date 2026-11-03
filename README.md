@@ -51,7 +51,7 @@ docker compose run --rm api node apps/api/dist/seed/index.js
 ## Run it locally
 
 ```sh
-cp .env.Example .env        # fill in DATABASE_URL and REDIS_URL
+cp .env.example .env        # fill in DATABASE_URL and REDIS_URL
 npm install
 npm run db:generate
 npm run db:migrate
@@ -61,6 +61,12 @@ npm run dev                 # API on :3000, web on :5173
 
 `npm run db:seed` also prints a verification table: every planted demo scenario
 must be detected before the seeder exits successfully.
+
+The API reads the repository-root `.env`. Vite loads env files from
+`apps/frontend`, so in development the web app falls back to
+`http://localhost:3000/api/v1`; set `VITE_API_URL` (bare host or versioned base —
+both are normalised) in `apps/frontend/.env` to point it somewhere else. Docker
+Compose passes it as a build argument.
 
 ## Accounts
 
