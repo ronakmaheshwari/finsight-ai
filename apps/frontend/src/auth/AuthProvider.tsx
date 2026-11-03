@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import type { AuthUserView } from "@repo/shared";
+import type { AuthUserView, RegisterInput } from "@repo/shared";
 
 import * as authApi from "@/api/auth";
 import { setAccessToken, setRefreshHandler } from "@/api/client";
@@ -10,6 +10,7 @@ interface AuthContextValue {
   user: AuthUserView | null;
   status: AuthStatus;
   login: (email: string, password: string) => Promise<void>;
+  register: (input: RegisterInput) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -34,6 +35,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = useCallback(
     async (email: string, password: string) => {
       const session = await authApi.login({ email, password });
+      applySession(session);
+    },
+    [applySession],
+  );
+
+  const register = useCallback(
+    async (input: RegisterInput) => {
+      const session = await authApi.register(input);
       applySession(session);
     },
     [applySession],
@@ -86,8 +95,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [applySession, clearSession]);
   const value = useMemo<AuthContextValue>(
-    () => ({ user, status, login, logout }),
-    [user, status, login, logout],
+    () => ({ user, status, login, register, logout }),
+    [user, status, login, register, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

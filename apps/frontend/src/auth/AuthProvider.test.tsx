@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   refresh: vi.fn(),
   me: vi.fn(),
   login: vi.fn(),
+  register: vi.fn(),
   logout: vi.fn(),
 }));
 
@@ -21,6 +22,7 @@ vi.mock("@/api/auth", () => ({
   refresh: mocks.refresh,
   me: mocks.me,
   login: mocks.login,
+  register: mocks.register,
   logout: mocks.logout,
 }));
 
@@ -35,7 +37,7 @@ const profile: AuthUserView = {
 };
 
 const Probe = () => {
-  const { user, status, login, logout } = useAuth();
+  const { user, status, login, register, logout } = useAuth();
 
   return (
     <div>
@@ -43,6 +45,19 @@ const Probe = () => {
       <p data-testid="user">{user ? `${user.name} (${user.role})` : "none"}</p>
       <button type="button" onClick={() => void login("analyst@finsight.test", "secret")}>
         Sign in
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          void register({
+            name: "Asha Admin",
+            organizationName: "Acme Audit LLP",
+            email: "asha@acme.test",
+            password: "correct-horse-battery",
+          })
+        }
+      >
+        Create account
       </button>
       <button type="button" onClick={() => void logout()}>
         Sign out
@@ -62,6 +77,7 @@ beforeEach(() => {
   mocks.refresh.mockReset();
   mocks.me.mockReset();
   mocks.login.mockReset();
+  mocks.register.mockReset();
   mocks.logout.mockReset();
 });
 
@@ -115,6 +131,25 @@ describe("AuthProvider", () => {
     await user.click(screen.getByRole("button", { name: "Sign out" }));
     await waitFor(() => expect(screen.getByTestId("user")).toHaveTextContent("none"));
     expect(mocks.logout).toHaveBeenCalledTimes(1);
+  });
+
+  it("registers an organisation and signs the new administrator in", async () => {
+    mocks.refresh.mockRejectedValue(new Error("no cookie"));
+    mocks.register.mockResolvedValue({ accessToken: "access-3", user: profile });
+
+    renderProvider();
+    await waitFor(() => expect(screen.getByTestId("status")).toHaveTextContent("anonymous"));
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Create account" }));
+
+    await waitFor(() => expect(screen.getByTestId("user")).toHaveTextContent("Priya Analyst (ANALYST)"));
+    expect(mocks.register).toHaveBeenCalledWith({
+      name: "Asha Admin",
+      organizationName: "Acme Audit LLP",
+      email: "asha@acme.test",
+      password: "correct-horse-battery",
+    });
+    expect(mocks.setAccessToken).toHaveBeenCalledWith("access-3");
   });
 
   it("clears the local session even when the logout call fails", async () => {

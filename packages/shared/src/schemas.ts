@@ -31,6 +31,19 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required").max(200),
 });
 
+/**
+ * Self-service sign-up. The first user of a new organisation becomes its
+ * ADMIN; everyone else joins through an administrator (`createUserSchema`).
+ */
+export const registerSchema = z.object({
+  name: z.string().min(2, "Enter your full name").max(64).trim(),
+  organizationName: z.string().min(2, "Enter your organisation name").max(120).trim(),
+  email: z.email("Enter a valid email address").trim().toLowerCase(),
+  password: z.string().min(10, "Password must be at least 10 characters").max(200),
+});
+
+export type RegisterInput = z.infer<typeof registerSchema>;
+
 export const createUserSchema = z.object({
   name: z.string().min(2).max(64).trim(),
   email: z.email("Enter a valid email address").trim().toLowerCase(),

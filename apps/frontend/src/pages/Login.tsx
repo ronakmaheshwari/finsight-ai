@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { loginSchema } from "@repo/shared";
 import type { z } from "zod";
 
@@ -115,6 +115,13 @@ export const Login = () => {
               {form.formState.isSubmitting ? <Spinner label="Signing in…" /> : "Sign in"}
             </Button>
           </form>
+
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            New to FinSight?{" "}
+            <Link to="/signup" className="font-medium text-primary underline-offset-4 hover:underline">
+              Create an account
+            </Link>
+          </p>
 
           {showDemoLogins ? (
             <div className="mt-6 space-y-2 border-t pt-4">

@@ -1,7 +1,8 @@
 import { createHash, randomBytes } from "node:crypto";
 import { type Request, type Response, Router } from "express";
+import { Prisma } from "@prisma/client";
 import db from "@repo/db";
-import { loginSchema } from "@repo/shared";
+import { loginSchema, registerSchema } from "@repo/shared";
 import { ApiError, env, hashPassword, jwtTokenGenerator, verifyPassword } from "@repo/utils";
 import userMiddleware from "../middleware/userMiddleware";
 import { rateLimit } from "../middleware/rateLimit";
@@ -32,6 +33,79 @@ const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
   keyOf: (req) => `${req.ip ?? "unknown"}:${String((req.body as { email?: string }).email ?? "")}`,
+});
+
+/** Five new organisations per hour per address is plenty for a real team. */
+const registerLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 5 });
+
+const toSessionUser = (user: {
+  id: string;
+  name: string;
+  email: string;
+  role: "ADMIN" | "MANAGER" | "ANALYST" | "VIEWER";
+  orgId: string;
+}) => ({ id: user.id, name: user.name, email: user.email, role: user.role, orgId: user.orgId });
+
+/**
+ * Self-service sign-up. Creates a brand new organisation and makes the first
+ * user its ADMIN, so a new account never lands inside an existing tenant.
+ */
+authRouter.post("/register", registerLimiter, async (req: Request, res: Response) => {
+  try {
+    const parsed = registerSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw ApiError.badRequest(parsed.error.issues[0]?.message ?? "Invalid sign-up request");
+    }
+
+    const { name, organizationName, email, password } = parsed.data;
+
+    const existing = await db.user.findUnique({ where: { email }, select: { id: true } });
+    if (existing) {
+      throw ApiError.emailAlreadyExists("An account with this email already exists. Sign in instead.");
+    }
+
+    const passwordHash = await hashPassword(password);
+
+    const user = await db.$transaction(async (tx) => {
+      const organization = await tx.organization.create({ data: { name: organizationName } });
+      return tx.user.create({
+        data: {
+          orgId: organization.id,
+          name,
+          email,
+          password: passwordHash,
+          role: "ADMIN",
+          userStatus: "ACTIVE",
+        },
+      });
+    });
+
+    const { token } = jwtTokenGenerator(user.id, user.orgId, user.name, user.email, user.role);
+    const refreshToken = await issueRefreshToken(user.id);
+    setRefreshCookie(res, refreshToken);
+
+    await audit({
+      orgId: user.orgId,
+      userId: user.id,
+      action: AUDIT_ACTIONS.USER_CREATED,
+      entityType: "User",
+      entityId: user.id,
+      meta: { source: "self-service", organizationName },
+      ip: req.ip ?? null,
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: { accessToken: token, user: toSessionUser(user) },
+    });
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      throw ApiError.emailAlreadyExists("An account with this email already exists. Sign in instead.");
+    }
+    console.error(`Error took place while registering an organisation: ${error}`);
+    throw ApiError.internal();
+  }
 });
 
 authRouter.post("/login", loginLimiter, async (req: Request, res: Response) => {

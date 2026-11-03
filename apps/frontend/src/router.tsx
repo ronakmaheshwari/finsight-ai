@@ -20,6 +20,7 @@ import { GraphExplorer } from "@/pages/GraphExplorer";
 import { Login } from "@/pages/Login";
 import { NotFound } from "@/pages/NotFound";
 import { Rules } from "@/pages/Rules";
+import { Signup } from "@/pages/Signup";
 import { RunDetail } from "@/pages/RunDetail";
 import { UploadWizard } from "@/pages/UploadWizard";
 import { Users } from "@/pages/Users";
@@ -45,6 +46,7 @@ const ANALYST_ROLES: Role[] = ["ADMIN", "MANAGER", "ANALYST"];
 export const AppRoutes = () => (
   <Routes>
     <Route path="/login" element={<Login />} />
+    <Route path="/signup" element={<Signup />} />
 
     <Route element={<ProtectedRoute />}>
       <Route element={<AppShell />}>

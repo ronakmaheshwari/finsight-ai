@@ -21,9 +21,13 @@ specified.
 | `BankAccount` gets `externalId` | Done | Needed so uploads and browsing can refer to `BA-0001`. |
 | `Transaction` gets `postedAt` | Done | Replaces the old date-only field. |
 
-The migration `packages/db/prisma/migrations/20261101000000_p1_dataset_and_analysis_models`
-alters NOT NULL columns, so it must be applied to a fresh database:
-`npm run db:reset` (the plan explicitly allows a destructive reset).
+Migrations are a single `packages/db/prisma/migrations/20261103000000_init`
+generated from the current Prisma schema. The earlier pair could not be applied
+to an empty database (the second migration altered columns the first never
+created), and the delivered development database had no migration history at
+all, so the history was regenerated instead of patched. `prisma migrate deploy`
+now reproduces the schema exactly (`prisma migrate diff` reports no drift), and
+`npm run db:reset` is only needed for a database created before this change.
 
 ## Backend behaviour
 
@@ -39,6 +43,7 @@ alters NOT NULL columns, so it must be applied to a fresh database:
 | `db:seed` checks `answer-key.json` | Checks the generated scenario list (`DEMO_SCENARIOS`) after the run | Same reason; the check is equivalent and fails loudly. |
 | `.env.example` | `.env.Example` (updated) | macOS is case-insensitive: `.env.Example` and `.env.example` are the same file. |
 | Env names in §13.2 (`JWT_ACCESS_SECRET`, `CORS_ORIGIN`, `ACCOUNT_HMAC_SECRET`, `MAX_UPLOAD_MB`, `LOG_LEVEL`) | Existing names: `JWT_SECRET`, `WEB_ORIGIN`, `ACCOUNT_HASH_SECRET`, `UPLOAD_MAX_MB`; no `LOG_LEVEL` | The repo already read these names in `packages/utils/src/setting.ts`; renaming them would have broken every existing deployment. `.env.Example` documents the real set. `MOCK_LLM`, `ACCESS_TTL`, `REFRESH_TTL_DAYS`, `COOKIE_SECURE` and `ANTHROPIC_API_KEY` match the plan. |
+| `POST /auth/register` | Added: public, rate-limited (5/hour/IP), creates a new organisation and its first `ADMIN`, audits `USER_CREATED` and returns a session | §8.1 only defines login/refresh/logout/me, but the product needs a way to create the first organisation. Self-service sign-up is scoped to a brand-new tenant, so it cannot add users to an existing one; those still come from `POST /users` (U2). |
 | `zod-to-json-schema` dependency | Left installed but unused (the tool schema uses `z.toJSONSchema`) | Removing it would churn the lockfile for no behavioural change; it is a candidate for the next dependency cleanup. |
 
 ## Testing

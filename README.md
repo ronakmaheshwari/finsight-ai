@@ -62,6 +62,16 @@ npm run dev                 # API on :3000, web on :5173
 `npm run db:seed` also prints a verification table: every planted demo scenario
 must be detected before the seeder exits successfully.
 
+## Accounts
+
+- **Sign up** at `/signup`. The first account of a new organisation becomes its
+  `ADMIN`; the organisation is created in the same transaction, so a new user
+  never lands inside an existing tenant.
+- **Sign in** at `/login`. Teammates are added by an administrator from the
+  Users page (they do not self-register into an existing organisation).
+- Refresh tokens live in an httpOnly cookie and rotate on every refresh; the
+  access token is kept in memory only.
+
 ## Demo accounts
 
 All demo users share the password from `SEED_PASSWORD` (default `Demo@1234`).
