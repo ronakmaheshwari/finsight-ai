@@ -7,6 +7,7 @@ import { env, validateEnv } from "@repo/utils";
 import router from "./routes/router";
 import healthRouter from "./controller/healthController";
 import { errorMiddleware, notFoundMiddleware } from "./middleware/errorMiddleware";
+import { activeProvider } from "./services/ai/client";
 
 const app: Express = express();
 const port = env.PORT;
@@ -66,6 +67,7 @@ const startServer = async (): Promise<void> => {
 
   app.listen(port, () => {
     console.log(`FinSight API listening on http://localhost:${port}`);
+    console.log(`AI provider: ${activeProvider()}`);
   });
 };
 

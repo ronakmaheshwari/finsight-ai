@@ -28,9 +28,26 @@ PDF export.
 
 - Node.js 24+ and npm 11 (the repo pins both in `package.json`).
 - PostgreSQL 16 and Redis 7 — either locally or through Docker Compose.
-- No Anthropic key is needed: with `MOCK_LLM=true` (the default when
-  `ANTHROPIC_API_KEY` is empty) the AI investigation is generated
-  deterministically.
+- No AI key is needed: with no provider configured (or `MOCK_LLM=true`) the
+  investigation is generated deterministically, offline.
+
+## AI providers
+
+The investigation narrative is written by whichever provider is configured.
+`AI_PROVIDER` pins one (`anthropic`, `ollama`, `opencode`, `mock`); when it is
+empty the first configured provider wins:
+
+| Order | Provider | Configure with | Default model |
+| --- | --- | --- | --- |
+| 1 | Anthropic Claude | `ANTHROPIC_API_KEY` (+ `LLM_MODEL`) | `claude-sonnet-4-5` |
+| 2 | Ollama (Cloud or local) | `OLLAMA_API_KEY`, `OLLAMA_HOST`, `OLLAMA_MODEL` | `gpt-oss:120b` |
+| 3 | OpenCode Console | `OPENCODE_API_KEY`, `OPENCODE_BASE_URL`, `OPENCODE_MODEL` | `deepseek-v4.1-flash` |
+| 4 | Mock | nothing | deterministic |
+
+A local daemon needs no key: `OLLAMA_HOST=http://localhost:11434` is enough.
+The provider and model actually used are stored on the investigation
+(`ollama:gpt-oss:120b`) and shown in the case's AI panel. Whichever provider is
+chosen, the same masking, schema, citation and language guardrails apply.
 
 ## Run it with Docker
 
@@ -51,7 +68,7 @@ docker compose run --rm api node apps/api/dist/seed/index.js
 ## Run it locally
 
 ```sh
-cp .env.example .env        # fill in DATABASE_URL and REDIS_URL
+cp .env.Example .env        # fill in DATABASE_URL and REDIS_URL
 npm install
 npm run db:generate
 npm run db:migrate

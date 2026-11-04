@@ -1,7 +1,6 @@
 import db from "@repo/db";
-import { env } from "@repo/utils";
 import { AUDIT_ACTIONS, writeAudit } from "../../lib/audit";
-import { generateInvestigation, REMINDER_MESSAGE } from "./client";
+import { activeProvider, generateInvestigation, retryReminder } from "./client";
 import { buildMaskedPacket } from "./packet";
 import { PROMPT_VERSION } from "./prompt";
 import { validateInvestigation } from "./validate";
@@ -14,10 +13,7 @@ const SAFE_ERRORS = new Set([
   "MASKING_LEAK",
 ]);
 
-/**
- * Runs one AI investigation job. Only the masked packet leaves the process; the
- * alias map lives in this function's memory and is never persisted or logged.
- */
+
 export const investigateCase = async (caseId: string, options: { regenerate?: boolean } = {}) => {
   const investigation = await db.aiInvestigation.findUnique({
     where: { caseId },
@@ -51,7 +47,7 @@ export const investigateCase = async (caseId: string, options: { regenerate?: bo
     let validated = validateInvestigation(result.output, masked.context, masked.signalIdByAlias);
 
     if (!validated.ok) {
-      result = await generateInvestigation(masked.packet, { reminder: REMINDER_MESSAGE });
+      result = await generateInvestigation(masked.packet, { reminder: retryReminder() });
       validated = validateInvestigation(result.output, masked.context, masked.signalIdByAlias);
     }
 
@@ -65,7 +61,7 @@ export const investigateCase = async (caseId: string, options: { regenerate?: bo
         status: "COMPLETED",
         error: null,
         output: validated.output,
-        model: env.LLM_MODEL,
+        model: activeProvider(),
         promptVersion: PROMPT_VERSION,
         packetHash: masked.hash,
         inputTokens: result.inputTokens,
@@ -80,7 +76,7 @@ export const investigateCase = async (caseId: string, options: { regenerate?: bo
       entityType: "Case",
       entityId: caseId,
       meta: {
-        model: env.LLM_MODEL,
+        model: activeProvider(),
         promptVersion: PROMPT_VERSION,
         inputTokens: result.inputTokens,
         outputTokens: result.outputTokens,

@@ -81,10 +81,36 @@ const env = {
     get MOCK_LLM(): boolean {
         const raw = process.env.MOCK_LLM
         if (raw !== undefined) return raw === "true"
-        return !process.env.ANTHROPIC_API_KEY
+        return !process.env.ANTHROPIC_API_KEY && !process.env.OLLAMA_API_KEY && !process.env.OPENCODE_API_KEY
     },
     get ANTHROPIC_API_KEY(): string | undefined {
         return process.env.ANTHROPIC_API_KEY
+    },
+    /**
+     * `anthropic` | `ollama` | `opencode` | `mock`. Leave empty to auto-detect
+     * (Claude key, then Ollama key, then OpenCode key).
+     */
+    get AI_PROVIDER(): string | undefined {
+        return process.env.AI_PROVIDER?.trim().toLowerCase() || undefined
+    },
+    get OLLAMA_API_KEY(): string | undefined {
+        return process.env.OLLAMA_API_KEY
+    },
+    /** `https://ollama.com` for Ollama Cloud, `http://localhost:11434` for a local daemon. */
+    get OLLAMA_HOST(): string {
+        return (process.env.OLLAMA_HOST ?? "https://ollama.com").replace(/\/+$/, "")
+    },
+    get OLLAMA_MODEL(): string {
+        return process.env.OLLAMA_MODEL ?? "gpt-oss:120b"
+    },
+    get OPENCODE_API_KEY(): string | undefined {
+        return process.env.OPENCODE_API_KEY
+    },
+    get OPENCODE_BASE_URL(): string {
+        return (process.env.OPENCODE_BASE_URL ?? "https://opencode.ai/inference/openai/v1").replace(/\/+$/, "")
+    },
+    get OPENCODE_MODEL(): string {
+        return process.env.OPENCODE_MODEL ?? "deepseek-v4.1-flash"
     },
     get UPLOAD_MAX_MB(): number {
         return Number(process.env.UPLOAD_MAX_MB ?? 10)
