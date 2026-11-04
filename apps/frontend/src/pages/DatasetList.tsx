@@ -39,6 +39,7 @@ export const DatasetList = () => {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Data intake"
         title="Datasets"
         description="Upload the six files, validate them, then start an analysis."
         actions={
@@ -76,18 +77,22 @@ export const DatasetList = () => {
         <>
           <DatasetTable rows={datasets.data} />
           <RoleGate allow={["ADMIN", "MANAGER"]}>
-            <div className="rounded-lg border bg-card p-4">
-              <h2 className="text-sm font-semibold">Danger zone</h2>
+            <div className="rounded-lg border border-destructive/25 bg-destructive/[0.03] p-4">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-destructive">
+                <Trash2 className="size-4" aria-hidden />
+                Danger zone
+              </h2>
               <p className="mt-1 text-xs text-muted-foreground">
-                Deleting a dataset removes its rows, runs, cases and signals.
+                Deleting a dataset removes its rows, runs, cases and signals. This cannot be undone.
               </p>
-              <ul className="mt-3 space-y-2">
+              <ul className="mt-3 divide-y divide-border/70 border-t border-border/70">
                 {datasets.data.map((dataset) => (
-                  <li key={dataset.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                    <span>{dataset.name}</span>
+                  <li key={dataset.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                    <span className="font-medium">{dataset.name}</span>
                     <Button
                       variant="outline"
                       size="sm"
+                      className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => setPendingDelete({ id: dataset.id, name: dataset.name })}
                     >
                       <Trash2 className="size-4" aria-hidden />

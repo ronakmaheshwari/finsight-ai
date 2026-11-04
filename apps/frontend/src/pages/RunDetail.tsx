@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, BarChart3, Clock, Network, ShieldAlert } from "lucide-react";
-import type { RunStatus } from "@repo/shared";
+import { Activity, ArrowLeft, BarChart3, Clock, Network, ShieldAlert, TrendingUp } from "lucide-react";
+import { RULE_CATALOG, type RunStatus } from "@repo/shared";
 
 import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
@@ -14,7 +14,7 @@ import { RunStatusBadge } from "@/components/StatusBadge";
 import { ErrorState, PageHeader } from "@/components/States";
 import { queryKeys } from "@/lib/queryKeys";
 import { formatDateTime, formatDuration, formatElapsed, formatMoney, formatNumber } from "@/lib/format";
-import { SEVERITY_LABEL } from "@/lib/severity";
+import { SEVERITY_BAR, SEVERITY_LABEL } from "@/lib/severity";
 
 const STEPS: { key: RunStatus; label: string }[] = [
   { key: "QUEUED", label: "Queued" },
@@ -64,7 +64,8 @@ export const RunDetail = () => {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={`Analysis run`}
+        eyebrow="Run detail"
+        title="Analysis run"
         description={
           <span>
             {data.dataset.name} ·{" "}
@@ -134,22 +135,30 @@ export const RunDetail = () => {
         </Card>
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            <KpiCard label="Cases" value={formatNumber(summary.caseCount ?? 0)} icon={<ShieldAlert className="size-4" />} />
-            <KpiCard label="Signals" value={formatNumber(summary.signalCount ?? 0)} />
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+            <KpiCard
+              label="Cases"
+              value={formatNumber(summary.caseCount ?? 0)}
+              icon={<ShieldAlert className="size-4" />}
+              tone="critical"
+            />
+            <KpiCard label="Signals" value={formatNumber(summary.signalCount ?? 0)} icon={<Activity className="size-4" />} />
             <KpiCard
               label="Flagged invoices"
               value={`${formatNumber(summary.flaggedInvoices ?? 0)} of ${formatNumber(summary.populationInvoices ?? 0)}`}
+              icon={<BarChart3 className="size-4" />}
             />
             <KpiCard
               label="Exposure"
               value={formatMoney(summary.totalExposure ?? 0)}
               hint={`Duration ${formatDuration(data.durationMs)}`}
+              icon={<TrendingUp className="size-4" />}
             />
             <KpiCard
               label="Hours saved (est.)"
               value={formatNumber(summary.estimatedHoursSaved ?? 0)}
               hint="Estimated, not measured"
+              icon={<Clock className="size-4" />}
               tooltip="Formula: 2 minutes of manual review per flagged invoice, plus 30 minutes per case, divided by 60."
             />
           </div>
@@ -162,8 +171,14 @@ export const RunDetail = () => {
               <CardContent>
                 <dl className="grid grid-cols-2 gap-3">
                   {Object.entries(SEVERITY_LABEL).map(([severity, label]) => (
-                    <div key={severity} className="rounded border p-3">
-                      <dt className="text-xs uppercase tracking-wide text-muted-foreground">{label}</dt>
+                    <div key={severity} className="relative overflow-hidden rounded-md border border-border bg-muted/30 p-3">
+                      <span
+                        className={`absolute inset-y-0 left-0 w-1 ${SEVERITY_BAR[severity as keyof typeof SEVERITY_BAR]}`}
+                        aria-hidden
+                      />
+                      <dt className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                        {label}
+                      </dt>
                       <dd className="mt-1 text-xl font-semibold tabular-nums">
                         {formatNumber(summary.casesBySeverity?.[severity] ?? 0)}
                       </dd>
@@ -184,13 +199,15 @@ export const RunDetail = () => {
                 {Object.keys(summary.signalsByRule ?? {}).length === 0 ? (
                   <p className="text-sm text-muted-foreground">No signals were raised.</p>
                 ) : (
-                  <ul className="space-y-1 text-sm">
+                  <ul className="divide-y divide-border/60 text-sm">
                     {Object.entries(summary.signalsByRule ?? {})
                       .sort(([, a], [, b]) => b - a)
                       .map(([rule, count]) => (
-                        <li key={rule} className="flex justify-between gap-3">
-                          <span className="font-mono text-xs">{rule}</span>
-                          <span className="tabular-nums">{formatNumber(count)}</span>
+                        <li key={rule} className="flex items-center justify-between gap-3 py-1.5">
+                          <span className="min-w-0 truncate" title={rule}>
+                            {RULE_CATALOG[rule as keyof typeof RULE_CATALOG]?.label ?? rule}
+                          </span>
+                          <span className="shrink-0 tabular-nums text-muted-foreground">{formatNumber(count)}</span>
                         </li>
                       ))}
                   </ul>

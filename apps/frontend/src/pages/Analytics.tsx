@@ -32,6 +32,7 @@ export const Analytics = () => {
   return (
     <div className="space-y-5">
       <PageHeader
+        eyebrow="Analysis run"
         title="Analytics"
         description={
           <span>

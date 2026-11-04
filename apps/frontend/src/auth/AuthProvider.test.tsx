@@ -1,21 +1,42 @@
+import { StrictMode } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthUserView } from "@repo/shared";
 
-const mocks = vi.hoisted(() => ({
-  setAccessToken: vi.fn(),
-  setRefreshHandler: vi.fn(),
-  refresh: vi.fn(),
-  me: vi.fn(),
-  login: vi.fn(),
-  register: vi.fn(),
-  logout: vi.fn(),
-}));
+const mocks = vi.hoisted(() => {
+  const state: { handler: (() => Promise<boolean>) | null; inFlight: Promise<boolean> | null } = {
+    handler: null,
+    inFlight: null,
+  };
+
+  return {
+    state,
+    setAccessToken: vi.fn(),
+    setRefreshHandler: vi.fn((handler: (() => Promise<boolean>) | null) => {
+      state.handler = handler;
+    }),
+    // Mirrors `client.refreshSession`: one shared call, whoever asks first.
+    refreshSession: vi.fn(() => {
+      if (!state.inFlight) {
+        state.inFlight = (state.handler ? state.handler() : Promise.resolve(false)).finally(() => {
+          state.inFlight = null;
+        });
+      }
+      return state.inFlight;
+    }),
+    refresh: vi.fn(),
+    me: vi.fn(),
+    login: vi.fn(),
+    register: vi.fn(),
+    logout: vi.fn(),
+  };
+});
 
 vi.mock("@/api/client", () => ({
   setAccessToken: mocks.setAccessToken,
   setRefreshHandler: mocks.setRefreshHandler,
+  refreshSession: mocks.refreshSession,
 }));
 
 vi.mock("@/api/auth", () => ({
@@ -74,6 +95,10 @@ const renderProvider = () =>
   );
 
 beforeEach(() => {
+  mocks.state.handler = null;
+  mocks.state.inFlight = null;
+  mocks.setAccessToken.mockReset();
+  mocks.refreshSession.mockClear();
   mocks.refresh.mockReset();
   mocks.me.mockReset();
   mocks.login.mockReset();
@@ -96,6 +121,21 @@ describe("AuthProvider", () => {
     expect(mocks.me).toHaveBeenCalledTimes(1);
   });
 
+  it("sets the access token before reading the profile, so a reload keeps the session", async () => {
+    mocks.refresh.mockResolvedValue({ accessToken: "access-1", user: profile });
+    mocks.me.mockImplementation(async () => {
+      // `me()` is authenticated: without the token the API answers 401 and the
+      // user is bounced to /login on every page reload.
+      expect(mocks.setAccessToken).toHaveBeenCalledWith("access-1");
+      return profile;
+    });
+
+    renderProvider();
+
+    await waitFor(() => expect(screen.getByTestId("status")).toHaveTextContent("authenticated"));
+    expect(mocks.me).toHaveBeenCalledTimes(1);
+  });
+
   it("falls back to anonymous when the boot refresh fails", async () => {
     mocks.refresh.mockRejectedValue(new Error("no cookie"));
 
@@ -105,6 +145,25 @@ describe("AuthProvider", () => {
     expect(screen.getByTestId("user")).toHaveTextContent("none");
     expect(mocks.setAccessToken).toHaveBeenLastCalledWith(null);
     expect(mocks.me).not.toHaveBeenCalled();
+  });
+
+  it("refreshes once, not twice, when the boot effect runs twice in StrictMode", async () => {
+    // Refresh tokens rotate server-side, so a second concurrent refresh is
+    // rejected and used to log the user straight back out on every reload.
+    mocks.refresh.mockResolvedValue({ accessToken: "access-1", user: profile });
+    mocks.me.mockResolvedValue(profile);
+
+    render(
+      <StrictMode>
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>
+      </StrictMode>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId("status")).toHaveTextContent("authenticated"));
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("user")).toHaveTextContent("Priya Analyst (ANALYST)");
   });
 
   it("registers the single-flight refresh handler before boot", () => {

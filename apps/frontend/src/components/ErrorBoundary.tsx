@@ -28,7 +28,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
 
     return (
       <div className="flex min-h-svh items-center justify-center px-4">
-        <div role="alert" className="w-full max-w-md space-y-3 rounded-lg border bg-card p-6 text-center">
+        <div role="alert" className="w-full max-w-md space-y-3 rounded-lg border border-border bg-card p-6 text-center shadow-card">
           <AlertTriangle className="mx-auto size-8 text-destructive" aria-hidden />
           <h1 className="text-lg font-semibold">Something went wrong</h1>
           <p className="text-sm text-muted-foreground">

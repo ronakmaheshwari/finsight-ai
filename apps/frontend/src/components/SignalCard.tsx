@@ -34,7 +34,7 @@ export const SignalCard = ({
     <li
       id={`signal-${signal.id}`}
       className={cn(
-        "rounded-lg border bg-card p-3 transition-colors",
+        "rounded-lg border border-border bg-card p-3 transition-colors",
         highlighted && "ring-2 ring-primary",
       )}
     >

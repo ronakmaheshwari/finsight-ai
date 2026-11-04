@@ -29,9 +29,9 @@ const REVIEW_LABEL: Record<AiReviewStatus, string> = {
 };
 
 const CONFIDENCE_CLASS: Record<InvestigationOutput["confidence"], string> = {
-  HIGH: "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200",
-  MEDIUM: "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200",
-  LOW: "border-slate-300 bg-slate-50 text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200",
+  HIGH: "border-positive/25 bg-positive/10 text-positive",
+  MEDIUM: "border-medium/30 bg-medium/15 text-medium",
+  LOW: "border-border bg-muted text-muted-foreground",
 };
 
 interface EditState {
@@ -84,9 +84,9 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
 );
 
 const priorityClass: Record<string, string> = {
-  HIGH: "border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200",
-  MEDIUM: "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200",
-  LOW: "border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-200",
+  HIGH: "border-critical/25 bg-critical/10 text-critical",
+  MEDIUM: "border-medium/30 bg-medium/15 text-medium",
+  LOW: "border-low/25 bg-low/10 text-low",
 };
 
 export const AiPanel = ({
@@ -216,7 +216,7 @@ export const AiPanel = ({
               {data.reviewedBy ? ` · ${data.reviewedBy.name}` : ""}
             </span>
             {data.edited ? (
-              <span className="rounded border border-purple-300 bg-purple-50 px-1.5 py-0.5 font-medium text-purple-800 dark:border-purple-800 dark:bg-purple-950 dark:text-purple-200">
+              <span className="rounded border border-primary/25 bg-primary/10 px-1.5 py-0.5 font-medium text-primary">
                 Edited
               </span>
             ) : null}

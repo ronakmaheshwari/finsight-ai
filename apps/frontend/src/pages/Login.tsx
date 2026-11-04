@@ -4,14 +4,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { loginSchema } from "@repo/shared";
 import type { z } from "zod";
+import { Fingerprint, ScanSearch, ShieldCheck } from "lucide-react";
 
 import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/card";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
-import { ShieldCheck } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { errorMessage } from "@/api/client";
+import { AuthLayout } from "@/components/layout/AuthLayout";
 import { Spinner } from "@/components/States";
 
 type LoginValues = z.infer<typeof loginSchema>;
@@ -21,6 +22,24 @@ const DEMO_ACCOUNTS = [
   { email: "manager@demo.com", role: "Manager" },
   { email: "analyst@demo.com", role: "Analyst" },
   { email: "viewer@demo.com", role: "Viewer" },
+];
+
+const POINTS = [
+  {
+    icon: ScanSearch,
+    title: "Signals, not verdicts",
+    body: "The engine ranks what looks unusual and shows the evidence behind every score.",
+  },
+  {
+    icon: Fingerprint,
+    title: "Every action attributed",
+    body: "Uploads, runs, rule changes and case decisions are recorded against a named user.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Scoped to your organisation",
+    body: "Data never crosses tenant boundaries, and reviewers only see their engagements.",
+  },
 ];
 
 // `DEV` is a built-in Vite flag, not an application env var.
@@ -58,18 +77,19 @@ export const Login = () => {
   });
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted/40 px-4 py-10">
-      <div className="flex items-center gap-2">
-        <ShieldCheck className="size-6 text-primary" aria-hidden />
-        <span className="text-lg font-semibold tracking-tight">FinSight AI</span>
-      </div>
-
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Sign in</CardTitle>
+    <AuthLayout
+      headline="Work every flagged invoice with evidence you can defend."
+      lede="Upload procurement data, run the deterministic risk engine, and resolve cases with the full signal trail attached."
+      points={POINTS}
+      footnote="FinSight surfaces risk indicators that require review. It never determines that wrongdoing occurred."
+    >
+      <Card className="gap-0 rounded-xl border-border py-0 shadow-raised">
+        <CardHeader className="gap-1.5 border-b border-border px-6 py-5">
+          <p className="eyebrow">Welcome back</p>
+          <CardTitle className="text-xl tracking-tight">Sign in</CardTitle>
           <CardDescription>Use your organisation account to continue.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-6 py-5">
           <form className="space-y-4" onSubmit={onSubmit} noValidate>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -106,7 +126,10 @@ export const Login = () => {
             </div>
 
             {formError ? (
-              <p role="alert" className="rounded border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              <p
+                role="alert"
+                className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+              >
                 {formError}
               </p>
             ) : null}
@@ -116,7 +139,7 @@ export const Login = () => {
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-muted-foreground">
+          <p className="mt-5 text-center text-sm text-muted-foreground">
             New to FinSight?{" "}
             <Link to="/signup" className="font-medium text-primary underline-offset-4 hover:underline">
               Create an account
@@ -124,8 +147,10 @@ export const Login = () => {
           </p>
 
           {showDemoLogins ? (
-            <div className="mt-6 space-y-2 border-t pt-4">
-              <p className="text-xs font-medium text-muted-foreground">Demo accounts (password Demo@1234)</p>
+            <div className="mt-5 space-y-2 border-t border-border pt-4">
+              <p className="text-[0.6875rem] font-medium text-muted-foreground">
+                Demo accounts · password <span className="data-num text-foreground">Demo@1234</span>
+              </p>
               <div className="grid grid-cols-2 gap-2">
                 {DEMO_ACCOUNTS.map((account) => (
                   <Button
@@ -146,6 +171,6 @@ export const Login = () => {
           ) : null}
         </CardContent>
       </Card>
-    </div>
+    </AuthLayout>
   );
 };

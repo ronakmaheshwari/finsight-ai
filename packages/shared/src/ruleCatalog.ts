@@ -1,13 +1,5 @@
 import type { RuleCategory } from "./enums";
 
-/**
- * Single source of truth for rule metadata, defaults and parameter bounds.
- *
- * Used by the rules API (L1-L3), the rule settings page and the engine config
- * snapshot. The engine keeps its own defaults; this catalog is the contract the
- * UI and the validation layer read. Appendix A of the implementation plan.
- */
-
 export const RULE_KEYS = [
   "DUPLICATE_INVOICE",
   "AMOUNT_OUTLIER",

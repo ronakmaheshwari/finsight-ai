@@ -128,6 +128,7 @@ export const Rules = () => {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Administration"
         title="Rule settings"
         description="Weights and thresholds are organisation-wide. Changes apply to the next analysis run; existing cases are not re-scored."
         actions={
@@ -138,7 +139,7 @@ export const Rules = () => {
         }
       />
 
-      <p className="flex items-start gap-2 rounded-lg border border-sky-300 bg-sky-50 px-3 py-2 text-xs text-sky-900 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-200">
+      <p className="flex items-start gap-2 rounded-lg border border-low/25 bg-low/10 px-3 py-2 text-xs text-low">
         <SlidersHorizontal className="mt-0.5 size-3.5 shrink-0" aria-hidden />
         <span>
           Disabling a rule stops it raising signals, but the deterministic engine still records it as disabled in the

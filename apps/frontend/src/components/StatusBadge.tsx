@@ -33,10 +33,10 @@ const RUN_ICON: Record<RunStatus, typeof Clock> = {
 };
 
 const RUN_CLASS: Record<RunStatus, string> = {
-  QUEUED: "border-slate-300 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200",
-  RUNNING: "border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200",
-  COMPLETED: "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200",
-  FAILED: "border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200",
+  QUEUED: "border-border bg-muted text-muted-foreground",
+  RUNNING: "border-primary/25 bg-primary/10 text-primary",
+  COMPLETED: "border-positive/25 bg-positive/10 text-positive",
+  FAILED: "border-critical/25 bg-critical/10 text-critical",
 };
 
 export const RunStatusBadge = ({ status, className }: { status: RunStatus; className?: string }) => {

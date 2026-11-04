@@ -17,7 +17,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { RoleGate } from "@/auth/RoleGate";
 import { CaseTable } from "@/components/CaseTable";
 import { DatasetTable } from "@/components/DatasetTable";
-import { KpiCard } from "@/components/KpiCard";
+import { KpiCard, type KpiTone } from "@/components/KpiCard";
 import { EmptyState, ErrorState, PageHeader } from "@/components/States";
 import { RiskByMonthChart, RuleBreakdownChart, TopVendorsChart } from "@/components/Charts";
 import { queryKeys } from "@/lib/queryKeys";
@@ -27,6 +27,14 @@ import { writeLastEngagement } from "@/lib/download";
 import type { Severity } from "@repo/shared";
 
 const SEVERITIES: Severity[] = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
+
+/** Each severity KPI carries its own accent so the row reads as a ramp. */
+const SEVERITY_TONE: Record<Severity, KpiTone> = {
+  CRITICAL: "critical",
+  HIGH: "high",
+  MEDIUM: "medium",
+  LOW: "low",
+};
 
 export const EngagementDashboard = () => {
   const { eid = "" } = useParams();
@@ -120,6 +128,7 @@ export const EngagementDashboard = () => {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Engagement overview"
         title={detail.clientName}
         description={
           <span>
@@ -151,8 +160,8 @@ export const EngagementDashboard = () => {
 
         <TabsContent value="overview" className="space-y-6 pt-4">
           {runOptions.length > 1 ? (
-            <div className="flex items-center gap-2">
-              <label htmlFor="run-select" className="text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
+              <label htmlFor="run-select" className="eyebrow">
                 Analysis run
               </label>
               <Select
@@ -178,7 +187,7 @@ export const EngagementDashboard = () => {
           ) : null}
 
           {dashboard.isPending ? (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
               {Array.from({ length: 8 }).map((_, index) => (
                 <Skeleton key={index} className="h-24 w-full" />
               ))}
@@ -200,12 +209,13 @@ export const EngagementDashboard = () => {
             <ErrorState message={errorMessage(dashboard.error)} onRetry={() => void dashboard.refetch()} />
           ) : dashboard.data ? (
             <>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
                 {SEVERITIES.map((severity) => (
                   <KpiCard
                     key={severity}
                     label={`${SEVERITY_LABEL[severity]} cases`}
                     value={formatNumber(dashboard.data.kpis.casesBySeverity[severity])}
+                    tone={SEVERITY_TONE[severity]}
                     icon={<ShieldAlert className="size-4" />}
                   />
                 ))}
@@ -240,10 +250,13 @@ export const EngagementDashboard = () => {
                 <RiskByMonthChart rows={dashboard.data.riskByMonth} />
                 <TopVendorsChart rows={dashboard.data.topVendors} />
                 <RuleBreakdownChart rows={dashboard.data.ruleBreakdown} />
-                <section className="rounded-lg border bg-card p-4">
+                <section className="rounded-lg border border-border bg-card p-4 shadow-card">
                   <div className="flex items-center justify-between gap-2">
-                    <h2 className="text-sm font-semibold">Recent cases</h2>
-                    <Button asChild variant="ghost" size="sm" className="h-7 text-xs">
+                    <div>
+                      <h2 className="text-sm font-semibold text-foreground">Recent cases</h2>
+                      <p className="mt-0.5 text-xs text-muted-foreground">Highest priority first.</p>
+                    </div>
+                    <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground">
                       <Link to={`/engagements/${eid}/cases`}>Open case queue</Link>
                     </Button>
                   </div>
@@ -295,14 +308,27 @@ export const EngagementDashboard = () => {
         </TabsContent>
 
         <TabsContent value="members" className="space-y-4 pt-4">
-          <ul className="divide-y rounded-lg border bg-card">
+          <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
             {detail.members.map((member) => (
               <li key={member.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-                <div>
-                  <p className="text-sm font-medium">{member.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {member.email} · {ROLE_LABEL[member.role]}
-                  </p>
+                <div className="flex items-center gap-3">
+                  <span
+                    className="grid size-8 shrink-0 place-items-center rounded-full bg-primary/10 text-[0.6875rem] font-semibold text-primary ring-1 ring-inset ring-primary/15"
+                    aria-hidden
+                  >
+                    {member.name
+                      .split(/\s+/)
+                      .filter(Boolean)
+                      .slice(0, 2)
+                      .map((part) => part[0]?.toUpperCase())
+                      .join("")}
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{member.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {member.email} · {ROLE_LABEL[member.role]}
+                    </p>
+                  </div>
                 </div>
                 <RoleGate allow={["ADMIN", "MANAGER"]}>
                   <Button

@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { AuthUserView, RegisterInput } from "@repo/shared";
 
 import * as authApi from "@/api/auth";
-import { setAccessToken, setRefreshHandler } from "@/api/client";
+import { refreshSession, setAccessToken, setRefreshHandler } from "@/api/client";
 
 type AuthStatus = "loading" | "authenticated" | "anonymous";
 
@@ -80,9 +80,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         // Boot sequence (§11.5): refresh the cookie session, then read the
         // canonical profile. The splash stays until both settle.
-        const session = await authApi.refresh();
+        //
+        // Refresh tokens rotate, so two concurrent refreshes make the second one
+        // 401 and log the user out. Going through the single-flight helper means
+        // the boot sequence and any 401 retry share one call (StrictMode mounts
+        // effects twice in development).
+        const refreshed = await refreshSession();
+        if (!refreshed) {
+          if (!cancelled) clearSession();
+          return;
+        }
+        // `me()` is an authenticated call, so the fresh token has to be in the
+        // client before it goes out — otherwise every reload 401s and the user
+        // is bounced to the login page.
         const profile = await authApi.me();
-        if (!cancelled) applySession(session, profile);
+        if (!cancelled) setUser(profile);
       } catch {
         if (!cancelled) clearSession();
       }

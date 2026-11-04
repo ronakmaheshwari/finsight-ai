@@ -6,7 +6,7 @@ import { DatasetStatusBadge, RunStatusBadge } from "./StatusBadge";
 import { formatDate } from "@/lib/format";
 
 export const DatasetTable = ({ rows }: { rows: DatasetRow[] }) => (
-  <div className="overflow-x-auto rounded-lg border bg-card">
+  <div className="overflow-x-auto rounded-lg border border-border bg-card">
     <Table>
       <TableHeader>
         <TableRow>

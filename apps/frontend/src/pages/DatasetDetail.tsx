@@ -116,6 +116,7 @@ export const DatasetDetail = () => {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Dataset"
         title={detail.name}
         description={
           <span>
@@ -168,7 +169,7 @@ export const DatasetDetail = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   {validation.status === "VALIDATED" ? (
-                    <CheckCircle2 className="size-4 text-emerald-600" aria-hidden />
+                    <CheckCircle2 className="size-4 text-positive" aria-hidden />
                   ) : (
                     <FileWarning className="size-4 text-destructive" aria-hidden />
                   )}
@@ -250,7 +251,7 @@ export const DatasetDetail = () => {
             <EmptyState title="No rows" description="This file was not uploaded or nothing matches the search." />
           ) : (
             <>
-              <div className="overflow-x-auto rounded-lg border bg-card">
+              <div className="overflow-x-auto rounded-lg border border-border bg-card">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -307,7 +308,7 @@ export const DatasetDetail = () => {
               }
             />
           ) : (
-            <div className="overflow-x-auto rounded-lg border bg-card">
+            <div className="overflow-x-auto rounded-lg border border-border bg-card">
               <Table>
                 <TableHeader>
                   <TableRow>

@@ -99,11 +99,12 @@ export const AuditLog = () => {
   return (
     <div className="space-y-5">
       <PageHeader
+        eyebrow="Administration"
         title="Audit log"
         description="Every state-changing action in this organisation, newest first. Metadata never contains row contents, tokens or secrets."
       />
 
-      <section className="space-y-3 rounded-lg border bg-card p-4" aria-label="Audit filters">
+      <section className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-card" aria-label="Audit filters">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           <div className="space-y-1">
             <Label htmlFor="audit-user" className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -232,7 +233,7 @@ export const AuditLog = () => {
         />
       ) : (
         <>
-          <div className="overflow-x-auto rounded-lg border bg-card">
+          <div className="overflow-x-auto rounded-lg border border-border bg-card">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -275,14 +276,16 @@ export const AuditLog = () => {
                         </TableCell>
                         <TableCell className="text-sm">{row.user?.name ?? "System"}</TableCell>
                         <TableCell className="text-sm">
-                          <span className="font-mono text-xs">{row.action}</span>
-                          <span className="ml-1 text-muted-foreground">{label === row.action ? "" : label}</span>
+                          <span className="block font-medium text-foreground">{label}</span>
+                          {label !== row.action ? (
+                            <span className="data-num block text-[0.6875rem] text-muted-foreground">{row.action}</span>
+                          ) : null}
                         </TableCell>
                         <TableCell className="text-sm">{row.entityType}</TableCell>
-                        <TableCell className="font-mono text-xs text-muted-foreground">
+                        <TableCell className="data-num max-w-52 truncate text-xs text-muted-foreground">
                           {row.entityId ?? "—"}
                         </TableCell>
-                        <TableCell className="font-mono text-xs text-muted-foreground">{row.ip ?? "—"}</TableCell>
+                        <TableCell className="data-num text-xs text-muted-foreground">{row.ip ?? "—"}</TableCell>
                       </TableRow>
                       {isOpen ? (
                         <TableRow key={`${row.id}-meta`}>

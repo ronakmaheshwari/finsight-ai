@@ -84,8 +84,8 @@ export const UploadCard = ({
             className={cn(
               "rounded-full border px-2 py-0.5 text-[11px] font-medium",
               required
-                ? "border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200"
-                : "border-slate-300 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200",
+                ? "border-critical/25 bg-critical/10 text-critical"
+                : "border-border bg-muted text-muted-foreground",
             )}
           >
             {required ? "Required" : "Optional"}
@@ -115,7 +115,7 @@ export const UploadCard = ({
           {state.kind === "uploading" ? (
             <Spinner label={`Importing ${label.toLowerCase()}…`} />
           ) : state.kind === "done" ? (
-            <p className="flex items-center justify-center gap-2 text-emerald-700 dark:text-emerald-300">
+            <p className="flex items-center justify-center gap-2 text-positive">
               <CheckCircle2 className="size-4" aria-hidden />
               {state.inserted} row{state.inserted === 1 ? "" : "s"} imported
             </p>

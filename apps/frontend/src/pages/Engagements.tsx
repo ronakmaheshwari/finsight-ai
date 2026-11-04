@@ -100,6 +100,7 @@ export const Engagements = () => {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Workspace"
         title="Engagements"
         description="Each engagement holds one client review: its datasets, analysis runs and cases."
         actions={
@@ -141,7 +142,7 @@ export const Engagements = () => {
           }
         />
       ) : (
-        <div className="overflow-x-auto rounded-lg border bg-card">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <Table>
             <TableHeader>
               <TableRow>

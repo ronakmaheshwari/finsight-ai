@@ -59,6 +59,20 @@ const ENTITY_META: Record<DatasetEntity, { label: string; required: boolean; des
   },
 };
 
+/** Four segments: name, upload, validate, run. */
+const StepTrail = ({ step }: { step: 1 | 2 | 3 | 4 }) => (
+  <div className="flex items-center gap-2" aria-label={`Step ${step} of 4`} role="group">
+    {[1, 2, 3, 4].map((index) => (
+      <span
+        key={index}
+        className={`h-1 w-10 rounded-full ${index <= step ? "bg-primary" : "bg-muted"}`}
+        aria-hidden
+      />
+    ))}
+    <span className="ml-1 text-[0.6875rem] font-medium text-muted-foreground">Step {step} of 4</span>
+  </div>
+);
+
 export const UploadWizard = () => {
   const { eid = "" } = useParams();
   const navigate = useNavigate();
@@ -145,12 +159,18 @@ export const UploadWizard = () => {
   if (!datasetId) {
     return (
       <div className="space-y-6">
-        <PageHeader title="New dataset" description="Step 1 of 4: give the dataset a name." />
-        <Card className="max-w-xl">
-          <CardHeader>
+        <PageHeader
+          eyebrow="New dataset"
+          title="Name the dataset"
+          description="A dataset groups the files for one review period. You can upload the files next."
+        >
+          <StepTrail step={1} />
+        </PageHeader>
+        <Card className="max-w-xl gap-0 overflow-hidden rounded-xl py-0 shadow-card">
+          <CardHeader className="border-b border-border px-5 py-4">
             <CardTitle className="text-base">Dataset name</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-5 py-4">
             <form
               className="space-y-4"
               onSubmit={(event) => {
@@ -178,9 +198,11 @@ export const UploadWizard = () => {
                   </p>
                 ) : null}
               </div>
-              <Button type="submit" disabled={create.isPending}>
-                {create.isPending ? <Spinner label="Creating…" /> : "Create dataset"}
-              </Button>
+              <div className="flex justify-end">
+                <Button type="submit" disabled={create.isPending}>
+                  {create.isPending ? <Spinner label="Creating…" /> : "Create dataset"}
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
@@ -194,8 +216,9 @@ export const UploadWizard = () => {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Upload"
         title={dataset.data.name}
-        description="Step 2 of 4: upload each file. Vendors and invoices are required; the rest unlock extra checks."
+        description="Upload each file. Vendors and invoices are required; the rest unlock extra checks."
         actions={
           <>
             <Button variant="outline" size="sm" onClick={() => void downloadFile("/datasets/templates/all", "finsight-upload-template.xlsx")}>
@@ -207,7 +230,9 @@ export const UploadWizard = () => {
             </Button>
           </>
         }
-      />
+      >
+        <StepTrail step={2} />
+      </PageHeader>
 
       <div className="space-y-3">
         {DATASET_ENTITIES.map((entity, index) => {
@@ -253,7 +278,7 @@ export const UploadWizard = () => {
 
           {validation ? (
             <div className="space-y-3">
-              <p className={`flex items-center gap-2 text-sm font-medium ${validation.status === "VALIDATED" ? "text-emerald-700 dark:text-emerald-300" : "text-destructive"}`}>
+              <p className={`flex items-center gap-2 text-sm font-medium ${validation.status === "VALIDATED" ? "text-positive" : "text-destructive"}`}>
                 {validation.status === "VALIDATED" ? (
                   <CheckCircle2 className="size-4" aria-hidden />
                 ) : (

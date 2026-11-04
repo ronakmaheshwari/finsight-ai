@@ -48,6 +48,7 @@ export const GraphExplorer = () => {
   return (
     <div className="space-y-4">
       <PageHeader
+        eyebrow="Analysis run"
         title="Relationship explorer"
         description="Entities linked by the signals in this run. Flagged nodes belong to at least one case."
         actions={
@@ -60,7 +61,7 @@ export const GraphExplorer = () => {
         }
       />
 
-      <div className="flex flex-wrap items-center gap-4 rounded-lg border bg-card p-3">
+      <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border bg-card p-3 shadow-card">
         <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Entity types</span>
         {ENTITY_TYPES.map((type) => (
           <div key={type} className="flex items-center gap-2">
@@ -85,14 +86,14 @@ export const GraphExplorer = () => {
 
         <aside className="space-y-3">
           {selected ? (
-            <div className="space-y-2 rounded-lg border bg-card p-4">
+            <div className="space-y-2 rounded-lg border border-border bg-card p-4 shadow-card">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">
                 {ENTITY_LABEL[selected.type] ?? selected.type}
               </p>
               <p className="font-medium">{selected.label}</p>
               <p className="font-mono text-xs text-muted-foreground">{selected.id}</p>
               {selected.flagged ? (
-                <p className="text-xs font-medium text-red-700 dark:text-red-300">
+                <p className="text-xs font-medium text-critical">
                   Flagged: this entity appears in at least one case.
                 </p>
               ) : null}
@@ -115,7 +116,7 @@ export const GraphExplorer = () => {
             </div>
           )}
 
-          <div className="rounded-lg border bg-card p-4 text-xs text-muted-foreground">
+          <div className="rounded-lg border border-border bg-card p-4 text-xs text-muted-foreground shadow-card">
             <p className="font-medium text-foreground">{filtered.nodes.length} nodes</p>
             <p>{filtered.edges.length} links shown</p>
             {filtered.truncated ? <p className="mt-2">The graph is truncated to the highest-priority cases.</p> : null}

@@ -33,7 +33,7 @@ export const NotesThread = ({
           <li className="text-sm text-muted-foreground">No notes yet.</li>
         ) : (
           notes.map((note) => (
-            <li key={note.id} className="rounded-lg border bg-card p-3">
+            <li key={note.id} className="rounded-lg border border-border bg-card p-3">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <p className="text-sm font-medium">{note.author.name}</p>
                 <p className="text-xs text-muted-foreground">{formatDateTime(note.createdAt)}</p>

@@ -17,12 +17,6 @@ interface RouterInterface {
 
 const router: Router = Router();
 
-/**
- * Mount order matters: routers that own a whole prefix come first, then the
- * routers that define absolute paths (`/datasets/:id/runs`, `/runs/:id`, ...).
- * `/datasets/templates/:entity` is registered inside `datasetRouter` before any
- * `/datasets/:id` route (§8.9).
- */
 const allRouters: RouterInterface[] = [
   { path: "/health", router: healthRouter },
   { path: "/auth", router: authRouter },

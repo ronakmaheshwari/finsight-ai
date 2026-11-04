@@ -78,12 +78,12 @@ export const GraphView = ({
   return (
     <div className="space-y-2">
       {graph.truncated ? (
-        <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+        <p className="rounded border border-medium/30 bg-medium/15 px-3 py-2 text-xs text-medium">
           The graph is truncated: only the highest-priority cases are shown.
         </p>
       ) : null}
 
-      <div className="overflow-auto rounded-lg border bg-card" style={{ maxHeight: height }}>
+      <div className="overflow-auto rounded-lg border border-border bg-card" style={{ maxHeight: height }}>
         <svg
           viewBox={`0 0 ${width} ${canvasHeight}`}
           width={width}
@@ -179,7 +179,7 @@ export const GraphView = ({
           </li>
         ))}
         <li className="inline-flex items-center gap-1.5">
-          <span className="inline-block size-2.5 rounded-full border-2 border-red-700" aria-hidden />
+          <span className="inline-block size-2.5 rounded-full border-2 border-critical" aria-hidden />
           Flagged (red outline)
         </li>
       </ul>

@@ -301,6 +301,7 @@ export const CaseDetail = () => {
   return (
     <div className="space-y-5">
       <PageHeader
+        eyebrow="Case detail"
         title={detail.title}
         description={
           <span className="flex flex-wrap items-center gap-2">

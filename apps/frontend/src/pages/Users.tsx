@@ -89,6 +89,7 @@ export const Users = () => {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Administration"
         title="Users"
         description="Accounts in this organisation. Roles decide what each person can see and change."
         actions={
@@ -99,7 +100,7 @@ export const Users = () => {
         }
       />
 
-      <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-4">
+      <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-4 shadow-card">
         <form
           className="flex items-end gap-2"
           onSubmit={(event) => {
@@ -174,7 +175,7 @@ export const Users = () => {
         <EmptyState title="No users match" description="Adjust the search or role filter." />
       ) : (
         <>
-          <div className="overflow-x-auto rounded-lg border bg-card">
+          <div className="overflow-x-auto rounded-lg border border-border bg-card">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -222,8 +223,8 @@ export const Users = () => {
                         <span
                           className={
                             row.isActive
-                              ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
-                              : "inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                              ? "inline-flex items-center gap-1.5 rounded-full border border-positive/25 bg-positive/10 px-2 py-0.5 text-xs font-medium text-positive"
+                              : "inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
                           }
                         >
                           {row.isActive ? "Active" : "Inactive"}
@@ -233,7 +234,12 @@ export const Users = () => {
                       <TableCell className="text-right">
                         <Button
                           size="sm"
-                          variant="ghost"
+                          variant="outline"
+                          className={
+                            row.isActive
+                              ? "text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              : "text-positive hover:bg-positive/10 hover:text-positive"
+                          }
                           disabled={isSelf || update.isPending}
                           title={isSelf ? "You cannot deactivate yourself" : undefined}
                           onClick={() => toggleActive(row)}

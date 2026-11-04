@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { Filter, X } from "lucide-react";
+import { ArrowDownWideNarrow, ArrowUpWideNarrow, X } from "lucide-react";
 import { CASE_STATUSES, SEVERITIES } from "@repo/shared";
 import type { CaseStatus, Severity } from "@repo/shared";
 
@@ -8,6 +8,7 @@ import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/select";
 import { Skeleton } from "@repo/ui/skeleton";
+import { cn } from "@repo/ui/lib/utils";
 import { listCases } from "@/api/cases";
 import { listDirectory } from "@/api/users";
 import { errorMessage } from "@/api/client";
@@ -16,7 +17,7 @@ import { CaseTable } from "@/components/CaseTable";
 import { Pagination } from "@/components/Pagination";
 import { EmptyState, ErrorState, PageHeader } from "@/components/States";
 import { queryKeys } from "@/lib/queryKeys";
-import { CASE_STATUS_LABEL, SEVERITY_LABEL } from "@/lib/severity";
+import { CASE_STATUS_LABEL, SEVERITY_CLASS, SEVERITY_LABEL } from "@/lib/severity";
 
 const csv = (values: string[]): string | undefined => (values.length ? values.join(",") : undefined);
 
@@ -83,7 +84,8 @@ export const CaseQueue = () => {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Case queue"
+        eyebrow="Case queue"
+        title="Cases"
         description={
           user?.role === "VIEWER"
             ? "Viewers see decided cases only."
@@ -98,67 +100,67 @@ export const CaseQueue = () => {
         }
       />
 
-      <section className="space-y-3 rounded-lg border bg-card p-4" aria-label="Filters">
-        <div className="flex flex-wrap items-center gap-2">
-          <Filter className="size-4 text-muted-foreground" aria-hidden />
-          <span className="text-sm font-medium">Filters</span>
-          {activeFilters > 0 ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 text-xs"
-              onClick={() => setParams(new URLSearchParams(runId ? { runId } : {}), { replace: true })}
-            >
-              <X className="size-3" aria-hidden />
-              Clear {activeFilters}
-            </Button>
-          ) : null}
-        </div>
+      <section className="rounded-lg border border-border bg-card shadow-card" aria-label="Filters">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-border px-4 py-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="eyebrow w-full sm:w-auto">Status</span>
+            {CASE_STATUSES.map((status) => {
+              const active = statuses.includes(status);
+              return (
+                <Button
+                  key={status}
+                  size="xs"
+                  variant="outline"
+                  aria-pressed={active}
+                  onClick={() => toggle("status", status)}
+                  className={cn(
+                    "h-7 rounded-full px-2.5 text-xs font-medium",
+                    active
+                      ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {CASE_STATUS_LABEL[status as CaseStatus]}
+                </Button>
+              );
+            })}
+          </div>
 
-        <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</p>
-          <div className="flex flex-wrap gap-1.5">
-            {CASE_STATUSES.map((status) => (
-              <Button
-                key={status}
-                size="sm"
-                variant={statuses.includes(status) ? "default" : "outline"}
-                aria-pressed={statuses.includes(status)}
-                onClick={() => toggle("status", status)}
-              >
-                {CASE_STATUS_LABEL[status as CaseStatus]}
-              </Button>
-            ))}
+          <span className="hidden h-6 w-px bg-border lg:block" aria-hidden />
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="eyebrow w-full sm:w-auto">Severity</span>
+            {SEVERITIES.map((severity) => {
+              const active = severities.includes(severity);
+              return (
+                <Button
+                  key={severity}
+                  size="xs"
+                  variant="outline"
+                  aria-pressed={active}
+                  onClick={() => toggle("severity", severity)}
+                  className={cn(
+                    "h-7 rounded-full px-2.5 text-xs font-medium",
+                    active ? SEVERITY_CLASS[severity as Severity] : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {SEVERITY_LABEL[severity as Severity]}
+                </Button>
+              );
+            })}
           </div>
         </div>
 
-        <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Severity</p>
-          <div className="flex flex-wrap gap-1.5">
-            {SEVERITIES.map((severity) => (
-              <Button
-                key={severity}
-                size="sm"
-                variant={severities.includes(severity) ? "default" : "outline"}
-                aria-pressed={severities.includes(severity)}
-                onClick={() => toggle("severity", severity)}
-              >
-                {SEVERITY_LABEL[severity as Severity]}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="space-y-1">
-            <label htmlFor="assignee-filter" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <div className="flex flex-wrap items-end gap-4 px-4 py-3">
+          <div className="space-y-1.5">
+            <label htmlFor="assignee-filter" className="eyebrow block">
               Assignee
             </label>
             <Select
               value={assignedTo || "any"}
               onValueChange={(value) => update({ assignedTo: value === "any" ? null : value, page: null })}
             >
-              <SelectTrigger id="assignee-filter" className="w-48">
+              <SelectTrigger id="assignee-filter" className="h-8 w-44 text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -174,9 +176,9 @@ export const CaseQueue = () => {
             </Select>
           </div>
 
-          <div className="space-y-1">
-            <label htmlFor="score-filter" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Minimum score: {minScore}
+          <div className="space-y-1.5">
+            <label htmlFor="score-filter" className="eyebrow block">
+              Min score <span className="data-num text-foreground">{minScore}</span>
             </label>
             <input
               id="score-filter"
@@ -185,18 +187,18 @@ export const CaseQueue = () => {
               max={100}
               step={5}
               value={minScore}
-              className="w-40 accent-primary"
+              className="h-8 w-36 accent-primary"
               onChange={(event) => update({ minScore: event.target.value, page: null })}
             />
           </div>
 
-          <div className="space-y-1">
-            <label htmlFor="sort-filter" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Sort
+          <div className="space-y-1.5">
+            <label htmlFor="sort-filter" className="eyebrow block">
+              Sort by
             </label>
             <div className="flex gap-1">
               <Select value={sortBy} onValueChange={(value) => update({ sortBy: value, page: null })}>
-                <SelectTrigger id="sort-filter" className="w-44">
+                <SelectTrigger id="sort-filter" className="h-8 w-40 text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -208,10 +210,11 @@ export const CaseQueue = () => {
               </Select>
               <Button
                 variant="outline"
-                size="sm"
+                size="icon-sm"
+                aria-label={sortDir === "desc" ? "Sort descending" : "Sort ascending"}
                 onClick={() => update({ sortDir: sortDir === "desc" ? "asc" : "desc", page: null })}
               >
-                {sortDir === "desc" ? "Desc" : "Asc"}
+                {sortDir === "desc" ? <ArrowDownWideNarrow className="size-4" aria-hidden /> : <ArrowUpWideNarrow className="size-4" aria-hidden />}
               </Button>
             </div>
           </div>
@@ -224,18 +227,31 @@ export const CaseQueue = () => {
               update({ q: typeof value === "string" ? value : null, page: null });
             }}
           >
-            <div className="space-y-1">
-              <label htmlFor="case-search" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <div className="space-y-1.5">
+              <label htmlFor="case-search" className="eyebrow block">
                 Search
               </label>
-              <Input id="case-search" name="q" defaultValue={q} placeholder="Title or entity" className="w-56" />
+              <Input id="case-search" name="q" defaultValue={q} placeholder="Title or entity" className="h-8 w-52 text-sm" />
             </div>
-            <Button type="submit" size="sm" variant="outline">
+            <Button type="submit" size="sm" className="h-8">
               Apply
             </Button>
           </form>
+
+          {activeFilters > 0 ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-auto h-8 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setParams(new URLSearchParams(runId ? { runId } : {}), { replace: true })}
+            >
+              <X className="size-3.5" aria-hidden />
+              Clear {activeFilters} filter{activeFilters === 1 ? "" : "s"}
+            </Button>
+          ) : null}
         </div>
       </section>
+
 
       {cases.isPending ? (
         <Skeleton className="h-56 w-full" />
