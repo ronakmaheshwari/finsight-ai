@@ -1,155 +1,204 @@
 # FinSight AI
 
-AI-assisted financial risk investigation. Upload procurement data (vendors,
-employees, bank accounts, purchase orders, invoices, transactions), run a
-deterministic risk engine over it, and work the resulting cases: prioritised
-evidence, an AI-written investigation for the reviewer, a decision trail and a
-PDF export.
+FinSight AI helps an audit or finance team look through a company's spending
+records and find the transactions that deserve a closer look.
 
-> **Language rule.** FinSight never states that fraud occurred. It surfaces
-> **risk indicators** that **require review**. Every AI output carries the same
-> disclaimer and must be accepted, edited or rejected by a human.
+You upload the usual paperwork (invoices, purchase orders, vendors, employees,
+bank accounts, payments). FinSight checks it against a fixed set of rules,
+groups the suspicious patterns into cases, and puts them in a queue for a person
+to review. For each case, an AI assistant can draft an explanation of what the
+pattern looks like and what to check next.
 
-## Monorepo layout
+> **The one rule FinSight always follows:** it never says that fraud happened.
+> It points out **risk indicators** that **need a person to review them**. Every
+> AI-written explanation carries that disclaimer and must be accepted, edited or
+> rejected by a human before it is used.
 
-| Path | What it is |
-| --- | --- |
-| `apps/api` | Express 5 API (`/api/v1`), risk engine, AI investigation, PDF export, BullMQ worker, seeders |
-| `apps/frontend` | React 19 + Vite web app (TanStack Query, Tailwind, shadcn via `@repo/ui`) |
-| `packages/db` | Prisma schema, migrations and client |
-| `packages/shared` | Enums, rule catalog, Zod schemas and API types used by both apps |
-| `packages/utils` | Environment validation, JWT helpers |
-| `packages/validation` | Legacy Zod validation helpers |
-| `packages/cache` | Redis client |
-| `packages/ui` | Shared shadcn/Radix component library |
-| `docs/DEVIATIONS.md` | Every deliberate difference from `Format.md` |
+---
 
-## Prerequisites
+## What it does, in plain terms
 
-- Node.js 24+ and npm 11 (the repo pins both in `package.json`).
-- PostgreSQL 16 and Redis 7 — either locally or through Docker Compose.
-- No AI key is needed: with no provider configured (or `MOCK_LLM=true`) the
-  investigation is generated deterministically, offline.
+1. **You upload the data.** Six simple spreadsheets or CSV files. FinSight checks
+   every row and tells you exactly which rows are wrong before anything is saved.
+2. **It checks the rules.** Things like "this employee approved invoices for a
+   company they created", "this payment is far larger than usual", or "these
+   invoices all end in round numbers". The rules are fixed, so the same data
+   always produces the same result.
+3. **You get a case list.** Related findings are grouped into one case with a
+   score from 0 to 100, a severity, and the money at stake.
+4. **You review a case.** You see the evidence, the numbers behind the score, and
+   can ask the AI for a written summary of the risk indicators.
+5. **You decide, and it is recorded.** You confirm or dismiss the case, and
+   FinSight keeps a record of who did what and when. You can download the case as
+   a PDF.
 
-## AI providers
+---
 
-The investigation narrative is written by whichever provider is configured.
-`AI_PROVIDER` pins one (`anthropic`, `ollama`, `opencode`, `mock`); when it is
-empty the first configured provider wins:
+## Try it in about five minutes
 
-| Order | Provider | Configure with | Default model |
-| --- | --- | --- | --- |
-| 1 | Anthropic Claude | `ANTHROPIC_API_KEY` (+ `LLM_MODEL`) | `claude-sonnet-4-5` |
-| 2 | Ollama (Cloud or local) | `OLLAMA_API_KEY`, `OLLAMA_HOST`, `OLLAMA_MODEL` | `gpt-oss:120b` |
-| 3 | OpenCode Console | `OPENCODE_API_KEY`, `OPENCODE_BASE_URL`, `OPENCODE_MODEL` | `deepseek-v4.1-flash` |
-| 4 | Mock | nothing | deterministic |
-
-A local daemon needs no key: `OLLAMA_HOST=http://localhost:11434` is enough.
-The provider and model actually used are stored on the investigation
-(`ollama:gpt-oss:120b`) and shown in the case's AI panel. Whichever provider is
-chosen, the same masking, schema, citation and language guardrails apply.
-
-## Run it with Docker
+You need Docker installed. Then, in the project folder:
 
 ```sh
 docker compose up --build
 ```
 
-- Web app: <http://localhost:8080>
-- API: <http://localhost:3000/api/v1> (`/health`, `/ready`)
+When it finishes starting:
 
-Migrations run as a one-off `migrate` service before the API starts. Seed the
-demo data once the stack is up:
+- Open the app at <http://localhost:8080>
+- Load the demo data (once):
 
 ```sh
 docker compose run --rm api node apps/api/dist/seed/index.js
 ```
 
-## Run it locally
+Then sign in with `admin@demo.com` and the password `Demo@1234`. You will land on
+a demo review with 16 cases, including three marked Critical.
+
+To stop everything, press `Ctrl+C`, then run `docker compose down`.
+
+---
+
+## Run it on your own computer
+
+You need Node.js 24 or newer, plus PostgreSQL and Redis (both can run in Docker).
 
 ```sh
-cp .env.Example .env        # fill in DATABASE_URL and REDIS_URL
+cp .env.Example .env     # then set DATABASE_URL and REDIS_URL in that file
 npm install
-npm run db:generate
-npm run db:migrate
-npm run db:seed             # demo org, users, engagements, datasets, runs and cases
-npm run dev                 # API on :3000, web on :5173
+npm run db:generate      # prepare the database client
+npm run db:migrate       # create the database tables
+npm run db:seed          # optional: load the demo review and its 16 cases
+npm run dev              # starts the app and the API
 ```
 
-`npm run db:seed` also prints a verification table: every planted demo scenario
-must be detected before the seeder exits successfully.
+Open <http://localhost:5173>.
 
-The API reads the repository-root `.env`. Vite loads env files from
-`apps/frontend`, so in development the web app falls back to
-`http://localhost:3000/api/v1`; set `VITE_API_URL` (bare host or versioned base —
-both are normalised) in `apps/frontend/.env` to point it somewhere else. Docker
-Compose passes it as a build argument.
+Two more things worth knowing:
 
-## Accounts
+- **Background work needs the worker.** Analysis runs and AI summaries are done
+  in the background, so keep `npm run worker` running in a second terminal while
+  you use the app.
+- **No AI key? No problem.** Without a key, FinSight writes the summary itself in
+  a fixed, offline way. Everything still works, including the demo data.
 
-- **Sign up** at `/signup`. The first account of a new organisation becomes its
-  `ADMIN`; the organisation is created in the same transaction, so a new user
-  never lands inside an existing tenant.
-- **Sign in** at `/login`. Teammates are added by an administrator from the
-  Users page (they do not self-register into an existing organisation).
-- Refresh tokens live in an httpOnly cookie and rotate on every refresh; the
-  access token is kept in memory only.
+---
 
-## Demo accounts
+## Signing in
 
-All demo users share the password from `SEED_PASSWORD` (default `Demo@1234`).
+- **New here?** Open `/signup` and create an account. The first person from a new
+  organisation becomes its administrator, and the organisation is created at the
+  same time, so nobody ever ends up inside someone else's company by accident.
+- **Adding teammates?** An administrator adds them from the Users page. People
+  cannot add themselves to an existing organisation.
 
-| Email | Role | Sees |
-| --- | --- | --- |
-| `admin@demo.com` | ADMIN | Everything, including users and rule settings |
-| `manager@demo.com` | MANAGER | Rules, audit log, all cases, decisions |
-| `analyst@demo.com` | ANALYST | Datasets, runs, cases, AI investigation |
-| `viewer@demo.com` | VIEWER | Read-only cases and decisions already made |
+### Demo accounts
 
-## Scripts
+All four demo accounts use the password `Demo@1234`.
 
-| Command | What it does |
-| --- | --- |
-| `npm run dev` | API + web in watch mode |
-| `npm run build` | Builds every workspace |
-| `npm test` | API engine tests + web unit tests |
-| `npm run lint` | ESLint everywhere, zero warnings allowed |
-| `npm run check-types` | `tsc` for every workspace |
-| `npm run db:generate` / `db:migrate` / `db:seed` / `db:reset` | Prisma lifecycle |
-| `npm run seed:verify` | Runs the engine over the generated demo data and prints the scenario table |
-| `npm run seed:export-demo-workbook` | Writes the demo data to `seed-data/finsight_test_data.xlsx` |
-| `npm run worker` | BullMQ worker (analysis + AI jobs) |
+| Email              | What they can do                              |
+| ------------------ | --------------------------------------------- |
+| `admin@demo.com`   | Everything, including users and rule settings |
+| `manager@demo.com` | All cases and decisions, rules, the audit log |
+| `analyst@demo.com` | Uploads, analyses, cases, AI summaries        |
+| `viewer@demo.com`  | Read-only: cases and decisions already made   |
 
-## How an analysis works
+---
 
-1. **Upload.** Six entity files are validated row by row; invalid rows are
-   reported with their row numbers and nothing is inserted (422). Templates for
-   every entity are downloadable as CSV and XLSX.
-2. **Run.** The deterministic engine (`apps/api/src/utils/riskEngine`) applies
-   the rule catalog, computes per-rule strength and produces signals, a 0–100
-   score per entity group, and cases. Same input, same output — always.
-3. **Investigate.** A case can be sent to the AI service. Evidence is masked
-   before it leaves the process (aliases, no names, no account numbers), the
-   response is validated against a Zod schema, and every finding must cite a
-   signal that exists in the case.
-4. **Review.** An analyst accepts, edits or rejects the investigation; a manager
-   confirms or dismisses the case. Every transition is written to the audit log.
-5. **Export.** A confirmed case can be exported as a PDF containing the
-   evidence, the reviewer's decision and the language-rule disclaimer.
+## Where the AI comes from
 
-## Roles
+FinSight can use any one of four options. It picks the first one you have
+configured, in this order:
 
-`ADMIN`, `MANAGER`, `ANALYST`, `VIEWER`. The API enforces the matrix on every
-route; the web app additionally hides what a role cannot use. Every query is
-scoped by `orgId`, so a cross-organisation id returns 404 rather than 403.
+| Order | Option                             | What you need                                          |
+| ----- | ---------------------------------- | ------------------------------------------------------ |
+| 1     | Anthropic Claude                   | `ANTHROPIC_API_KEY`                                    |
+| 2     | Ollama (cloud or your own machine) | `OLLAMA_API_KEY`, or `OLLAMA_HOST` for a local install |
+| 3     | OpenCode                           | `OPENCODE_API_KEY`                                     |
+| 4     | Built-in offline mode              | nothing at all                                         |
 
-## Environment
+If you want to force a particular one, set `AI_PROVIDER` to `anthropic`,
+`ollama`, `opencode` or `mock`. The app records which one wrote each summary
+(for example `ollama:gpt-oss:120b`) and shows it on the case.
 
-Every key is documented in `.env.Example`. The API validates the required ones
-at boot and exits on a missing value. Never commit a real secret; bank account
-numbers are stored only as HMAC hashes.
+Whichever option you choose, the same safety steps apply:
 
-## Tests and quality gates
+- Names and account numbers are replaced with neutral labels before anything is
+  sent to the AI.
+- The answer must follow a fixed structure, and every claim must point to a
+  finding that actually exists in the case.
+- The wording is checked, so an answer that accuses anyone is thrown away and
+  retried.
+- A person still has to accept the summary before it counts for anything.
+
+---
+
+## Who can do what
+
+There are four roles: Administrator, Manager, Analyst and Viewer. The app hides
+what a role cannot use, and the server refuses the request as well, so the
+protection does not depend on the screen alone.
+
+Each organisation's data is completely separate. If someone from another
+organisation tries to open a case by its address, they get "not found" rather
+than a hint that it exists.
+
+---
+
+## Common problems
+
+| What you see                                            | What to do                                                                                                                   |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| The page loads but nothing happens                      | Make sure the API is running on port 3000 and that `WEB_ORIGIN` matches the address you opened.                              |
+| Uploads or AI summaries stay "queued"                   | Start the worker: `npm run worker`.                                                                                          |
+| "An account with this email already exists" on sign-up  | That email is already registered. Sign in instead, or use a different address.                                               |
+| Sign-in works, but the page reloads to the login screen | The refresh cookie was rejected. Check that `WEB_ORIGIN` has no trailing slash and that cookies are allowed for `localhost`. |
+| The AI summary fails                                    | Check the provider key, or set `MOCK_LLM=true` to use the offline mode.                                                      |
+
+---
+
+## For developers
+
+The project is a single repository with two apps and a few shared packages.
+
+| Folder               | What lives there                                                                 |
+| -------------------- | -------------------------------------------------------------------------------- |
+| `apps/api`           | The server: rules engine, AI summaries, PDF export, background worker, demo data |
+| `apps/frontend`      | The web app people use                                                           |
+| `packages/db`        | Database schema and migrations                                                   |
+| `packages/shared`    | Types, rules and form rules used by both apps                                    |
+| `packages/ui`        | Shared buttons, cards, tables and other interface pieces                         |
+| `packages/utils`     | Configuration and login helpers                                                  |
+| `packages/cache`     | Connection to Redis                                                              |
+| `docs/DEVIATIONS.md` | Every place where the build differs from `Format.md`, and why                    |
+
+### Commands
+
+| Command                             | What it does                                             |
+| ----------------------------------- | -------------------------------------------------------- |
+| `npm run dev`                       | Start the web app and the API                            |
+| `npm run worker`                    | Start the background worker (analysis and AI jobs)       |
+| `npm run build`                     | Build everything                                         |
+| `npm test`                          | Run the automated tests                                  |
+| `npm run lint`                      | Check the code style                                     |
+| `npm run check-types`               | Check the TypeScript types                               |
+| `npm run db:migrate`                | Create or update the database tables                     |
+| `npm run db:seed`                   | Load the demo review and its cases                       |
+| `npm run db:reset`                  | Wipe the database and start again (development only)     |
+| `npm run seed:verify`               | Check that every planted demo scenario is still detected |
+| `npm run seed:export-demo-workbook` | Write the demo data to an Excel file                     |
+
+### Settings
+
+Every setting is listed with a comment in `.env.Example`. The API checks the
+required ones when it starts and stops with a clear message if one is missing.
+
+Never commit a real secret. Bank account numbers are never stored in readable
+form: only a one-way fingerprint is kept.
+
+The web app reads its own settings from `apps/frontend/.env`. In development it
+falls back to `http://localhost:3000/api/v1`, which is what you want locally.
+
+### Tests
 
 ```sh
 npm run check-types
@@ -157,6 +206,13 @@ npm run lint
 npm test
 ```
 
-The backend uses Node's built-in test runner over the compiled output; the web
-app uses Vitest + Testing Library. See `docs/DEVIATIONS.md` for the tests that
-need a live database or browser and could not run in this environment.
+The server tests use Node's built-in test runner; the web app uses Vitest with
+Testing Library. A few checks need a live database or a real browser and are
+described in `docs/DEVIATIONS.md`.
+
+---
+
+## More detail
+
+- `Format.md` is the original specification this project was built from.
+- `docs/DEVIATIONS.md` lists every deliberate difference from it, with reasons.
