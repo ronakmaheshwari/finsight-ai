@@ -5,6 +5,8 @@ x-api-env: &api-env
   PORT: "3000"
   DATABASE_URL: postgresql://finsight:finsight@postgres:5432/finsight?schema=public
   REDIS_URL: redis://redis:6379
+  RUN_MIGRATION_RESET: false
+  RUN_MIGRATION: false 
   JWT_SECRET: ${JWT_SECRET:-local-only-jwt-secret-change-before-deploying}
   JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-local-only-refresh-secret-change-before-deploy}
   ACCESS_TTL: 15m
@@ -52,20 +54,20 @@ services:
       timeout: 5s
       retries: 10
 
-  migrate:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
-    image: finsight-api
-    command: ["npm", "run", "db:migrate", "--workspace=@repo/db"]
-    environment: *api-env
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: "no"
+  # migrate:
+  #   build:
+  #     context: .
+  #     dockerfile: apps/api/Dockerfile
+  #   # image: finsight-api
+  #   command: ["npm", "run", "db:migrate", "--workspace=@repo/db"]
+  #   environment: *api-env
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   restart: "no"
 
   api:
-    image: finsight-api
+    # image: finsight-api
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -81,7 +83,9 @@ services:
         condition: service_completed_successfully
 
   worker:
-    image: finsight-api
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
     command: ["node", "apps/api/dist/worker.js"]
     environment: *api-env
     depends_on:

@@ -24,7 +24,7 @@
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
     "@types/node": "^26.4.1",
-    "eslint": "^10.13.0",
+    "eslint": "^9.39.5",
     "typescript": "^7.0.2"
   },
   "dependencies": {

@@ -35,7 +35,8 @@ const styleSheet = (sheet: ExcelJS.Worksheet, entity: Entity): void => {
       fgColor: { argb: column.required ? REQUIRED_FILL : OPTIONAL_FILL },
     };
     if (!column.required) cell.font = { name: "Arial", size: 11, bold: true, color: { argb: "FF1F2937" } };
-    cell.note = `${column.description}${column.required ? " (required)" : " (optional)"}\nExample: ${column.example}`;
+    (cell as unknown as { note: string }).note =
+      `${column.description}${column.required ? " (required)" : " (optional)"}\nExample: ${column.example}`;
   });
 
   sheet.views = [{ state: "frozen", ySplit: 1 }];

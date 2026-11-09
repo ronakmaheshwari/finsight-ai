@@ -1,0 +1,91 @@
+name: finsight-ai
+
+x-api-env: &api-env
+  NODE_ENV: production
+  PORT: "3000"
+  DATABASE_URL: postgresql://finsight:finsight@postgres:5432/finsight?schema=public
+  REDIS_URL: redis://redis:6379
+  RUN_MIGRATION_RESET: false
+  RUN_MIGRATION: false 
+  JWT_SECRET: ${JWT_SECRET:-local-only-jwt-secret-change-before-deploying}
+  JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-local-only-refresh-secret-change-before-deploy}
+  ACCESS_TTL: 15m
+  REFRESH_TTL_DAYS: "7"
+  COOKIE_SECURE: "false"
+  ENCRYPTION_SECRET: ${ENCRYPTION_SECRET:-local-only-encryption-secret}
+  ACCOUNT_HASH_SECRET: ${ACCOUNT_HASH_SECRET:-local-only-account-hash-secret}
+  SALTROUND: "10"
+  UPLOAD_MAX_MB: "25"
+  WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:8080}
+  VITE_FRONTEND_URL: ${VITE_FRONTEND_URL:-http://localhost:8080}
+  VITE_API_URL: ${VITE_API_URL:-http://localhost:3000/api/v1}
+  API_BASE_URL: ${API_BASE_URL:-http://localhost:3000/api/v1}
+  MOCK_LLM: ${MOCK_LLM:-true}
+  LLM_MODEL: ${LLM_MODEL:-claude-sonnet-4-5}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: finsight
+      POSTGRES_PASSWORD: finsight
+      POSTGRES_DB: finsight
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finsight -d finsight"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  api:
+    image: ronakmaheshwari077/finsight-api:latest
+    environment: *api-env
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    image: ronakmaheshwari077/finsight-api:latest
+    command: ["node", "apps/api/dist/worker.js"]
+    environment: *api-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    image: ronakmaheshwari077/finsight-frontend
+    # args:
+    #   VITE_API_URL: /api/v1
+    environment:
+      NODE_ENV: production
+    ports:
+      - "8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  redisdata:

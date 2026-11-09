@@ -27,6 +27,12 @@ const env = {
     get REDIS_URL(): string {
         return requireEnv("REDIS_URL")
     },
+    get RUN_MIGRATION() {
+        return process.env.RUN_MIGRATION === "true"
+    },
+    get RUN_MIGRATION_RESET() {
+        return process.env.RUN_MIGRATION_RESET === "true"
+    },
     get SALTROUND(): number {
         return Number(process.env.SALTROUND ?? 10)
     },

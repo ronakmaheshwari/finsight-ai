@@ -19,7 +19,7 @@ export interface SheetData {
 const isCsv = (originalName: string): boolean => originalName.toLowerCase().endsWith(".csv");
 
 /** Any cell -> trimmed text, so the row schemas only ever deal with strings. */
-const cellToText = (value: ExcelJS.CellValue): string => {
+const cellToText = (value: ExcelJS.CellValue | undefined): string => {
     if (value === null || value === undefined) return "";
     if (value instanceof Date) return value.toISOString().slice(0, 10); // yyyy-mm-dd (UTC)
 
