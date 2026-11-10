@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
-import { Moon, ShieldCheck, Sun } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import { Button } from "@repo/ui/button";
+import { GrantThorntonBrand } from "@/components/Brand";
 import { useTheme } from "@/lib/useTheme";
 
 /**
@@ -43,14 +45,8 @@ export const AuthLayout = ({
           style={{ background: "radial-gradient(circle, oklch(0.6 0.16 262 / 35%), transparent 65%)" }}
         />
 
-        <div className="relative flex items-center gap-2.5">
-          <span className="grid size-9 place-items-center rounded-lg bg-white/10 ring-1 ring-inset ring-white/15">
-            <ShieldCheck className="size-5 text-white" aria-hidden />
-          </span>
-          <span>
-            <span className="block text-sm font-semibold tracking-tight text-white">FinSight AI</span>
-            <span className="block text-[0.6875rem] text-[var(--rail-muted)]">Risk investigation</span>
-          </span>
+        <div className="relative">
+          <GrantThorntonBrand variant="onDark" subtitle="FinSight AI · Risk investigation" />
         </div>
 
         <div className="relative my-auto max-w-md space-y-8 py-12">
@@ -88,17 +84,17 @@ export const AuthLayout = ({
         </div>
 
         <div className="my-auto w-full">
-          <div className="mx-auto mb-7 flex items-center gap-2.5 lg:hidden">
-            <span className="grid size-9 place-items-center rounded-lg bg-sidebar">
-              <ShieldCheck className="size-5 text-white" aria-hidden />
-            </span>
-            <span>
-              <span className="block text-sm font-semibold tracking-tight">FinSight AI</span>
-              <span className="block text-[0.6875rem] text-muted-foreground">Risk investigation</span>
-            </span>
+          <div className="mx-auto mb-7 lg:hidden">
+            <GrantThorntonBrand size="sm" subtitle="FinSight AI · Risk investigation" />
           </div>
           <div className="mx-auto w-full max-w-[26rem]">{children}</div>
         </div>
+
+        <p className="mt-8 text-center text-[0.6875rem] text-muted-foreground">
+          <Link to="/about" className="font-medium underline-offset-4 hover:text-foreground hover:underline">
+            About the developer
+          </Link>
+        </p>
       </main>
     </div>
   );

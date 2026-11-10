@@ -3,6 +3,7 @@ import {
   BarChart3,
   Database,
   FolderOpen,
+  Info,
   LayoutDashboard,
   ScrollText,
   ShieldAlert,
@@ -121,9 +122,19 @@ export const Sidebar = ({ onNavigate }: { onNavigate?: () => void }) => {
 
       </div>
 
-      <div className="mt-auto flex items-start gap-2 rounded-md bg-white/5 px-3 py-2.5 text-[0.6875rem] leading-snug text-[var(--rail-muted)]">
-        <BarChart3 className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-        <span>Every result requires human review.</span>
+      <div className="mt-auto space-y-2">
+        <div className="flex items-start gap-2 rounded-md bg-white/5 px-3 py-2.5 text-[0.6875rem] leading-snug text-[var(--rail-muted)]">
+          <BarChart3 className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+          <span>Every result requires human review.</span>
+        </div>
+        <NavLink
+          to="/about"
+          onClick={onNavigate}
+          className="flex items-center gap-2 rounded-md px-3 py-2 text-[0.6875rem] font-medium text-[var(--rail-muted)] transition-colors hover:bg-white/5 hover:text-sidebar-foreground"
+        >
+          <Info className="size-3.5 shrink-0" aria-hidden />
+          About the developer
+        </NavLink>
       </div>
     </nav>
   );

@@ -7,6 +7,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { AppShell } from "@/components/layout/AppShell";
 import { Splash } from "@/components/Splash";
 import { readLastEngagement } from "@/lib/download";
+import { About } from "@/pages/About";
 import { Analytics } from "@/pages/Analytics";
 import { AuditLog } from "@/pages/AuditLog";
 import { CaseDetail } from "@/pages/CaseDetail";
@@ -47,6 +48,7 @@ export const AppRoutes = () => (
   <Routes>
     <Route path="/login" element={<Login />} />
     <Route path="/signup" element={<Signup />} />
+    <Route path="/about" element={<About />} />
 
     <Route element={<ProtectedRoute />}>
       <Route element={<AppShell />}>
