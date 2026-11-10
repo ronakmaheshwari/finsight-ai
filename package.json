@@ -2,6 +2,7 @@
   "name": "Finsight-AI",
   "private": true,
   "scripts": {
+    "postinstall": "npm run db:generate",
     "build": "turbo run build",
     "test": "turbo run test",
     "dev": "turbo run dev worker:dev",
