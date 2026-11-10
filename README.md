@@ -68,16 +68,16 @@ npm install
 npm run db:generate      # prepare the database client
 npm run db:migrate       # create the database tables
 npm run db:seed          # optional: load the demo review and its 16 cases
-npm run dev              # starts the app and the API
+npm run dev              # starts the app, the API and the background worker
 ```
 
 Open <http://localhost:5173>.
 
 Two more things worth knowing:
 
-- **Background work needs the worker.** Analysis runs and AI summaries are done
-  in the background, so keep `npm run worker` running in a second terminal while
-  you use the app.
+- **Background work has a worker.** Analysis runs and AI summaries are done in
+  the background, and `npm run dev` starts that worker for you. If you want it on
+  its own (for example while running the API by hand), use `npm run worker`.
 - **No AI key? No problem.** Without a key, FinSight writes the summary itself in
   a fixed, offline way. Everything still works, including the demo data.
 
@@ -149,7 +149,7 @@ than a hint that it exists.
 | What you see                                            | What to do                                                                                                                   |
 | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | The page loads but nothing happens                      | Make sure the API is running on port 3000 and that `WEB_ORIGIN` matches the address you opened.                              |
-| Uploads or AI summaries stay "queued"                   | Start the worker: `npm run worker`.                                                                                          |
+| Uploads or AI summaries stay "queued"                   | Make sure the worker is running: `npm run dev` starts it, or run `npm run worker`.                                            |
 | "An account with this email already exists" on sign-up  | That email is already registered. Sign in instead, or use a different address.                                               |
 | Sign-in works, but the page reloads to the login screen | The refresh cookie was rejected. Check that `WEB_ORIGIN` has no trailing slash and that cookies are allowed for `localhost`. |
 | The AI summary fails                                    | Check the provider key, or set `MOCK_LLM=true` to use the offline mode.                                                      |
@@ -175,8 +175,8 @@ The project is a single repository with two apps and a few shared packages.
 
 | Command                             | What it does                                             |
 | ----------------------------------- | -------------------------------------------------------- |
-| `npm run dev`                       | Start the web app and the API                            |
-| `npm run worker`                    | Start the background worker (analysis and AI jobs)       |
+| `npm run dev`                       | Start the web app, the API and the background worker     |
+| `npm run worker`                    | Start only the background worker (analysis and AI jobs)  |
 | `npm run build`                     | Build everything                                         |
 | `npm test`                          | Run the automated tests                                  |
 | `npm run lint`                      | Check the code style                                     |

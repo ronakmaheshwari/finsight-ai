@@ -70,6 +70,10 @@
       "cache": false,
       "persistent": true
     },
+    "worker:dev": {
+      "cache": false,
+      "persistent": true
+    },
     "test": {
       "dependsOn": [
         "^build"
